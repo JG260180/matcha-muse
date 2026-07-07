@@ -12,28 +12,37 @@ Execution uses **superpowers:subagent-driven-development**: one fresh implemente
 
 Work is on branch **`build/v1`** (repo root `C:\Users\justi\OneDrive\Documents\MatchaMuse`, `main` holds only docs). App lives in `app/` (Vite + React 19 + TS + Tailwind 3). When v1 is complete: final whole-implementation code review, then superpowers:finishing-a-development-branch (merge build/v1 → main; no remote exists).
 
-## Task status (plan Task numbers)
+## Task status (plan Task numbers) — updated 2026-07-08, overnight run complete
+
+**Tasks 1–13 ALL DONE, each through both reviews + any fix. Only Task 14 (deploy, human-assisted) remains.** A final whole-implementation review passed: no critical/blocking issues; end-to-end data flow, offline round-trip (drankAt preserved, flush concurrency), and RLS-vs-client-insert all verified coherent. Verdict: **ready for deployment.** State: 20 source files, **12 tests passing**, `tsc -b --noEmit` clean, `npm run build` clean. Google Places key done + live-verified. Only Task 14 is left.
 
 | # | Task | Status |
 |---|------|--------|
-| 1 | Scaffold | ✅ Done + both reviews passed |
+| 1 | Scaffold | ✅ Done + reviews |
 | 2 | Ceremony theme/shell | ✅ Done + reviews |
 | 3 | Icon/PWA assets | ✅ Done + reviews |
 | 4 | Supabase project (human) | ✅ Done |
 | 5 | Schema/RLS/storage | ✅ Done — applied & verified in dashboard |
-| 6 | Types/client/login | ✅ Done + reviews + fixes (see amendments) |
+| 6 | Types/client/login | ✅ Done + reviews + fixes |
 | 7 | StarRating (TDD) | ✅ Done + reviews + a11y fix |
-| 8 | Places lookup (TDD) | ✅ Code done + both reviews. ⏳ **HUMAN STEP PENDING: Google API key** (see below) |
-| 10 | ReviewForm (TDD) | ✅ Done + both reviews + hardening fixes applied (commit ad7950e: strict price regex, trimmed price on both submit paths, inline invalid-price hint, draft-path + nonsense-price tests; 7 tests total now pass) |
-| 9 | Offline queue (TDD) | ❌ Not started. **Deliberately reordered to AFTER Tasks 10+11** (its imports need ReviewForm + CafePicker types; plan sanctions this) |
-| 11 | CafePicker | ❌ Not started. Includes plan amendment Step 1b: add `AbortSignal.timeout(8000)` to both fetches in `places.ts` |
-| 12 | Save pipeline + NewReview | ❌ Not started |
-| 13 | Dashboard/routing/flush | ❌ Not started |
-| 14 | Deploy + iPhone acceptance | ❌ Not started (human-assisted: Cloudflare account, post-deploy config) |
+| 8 | Places lookup (TDD) | ✅ Done + reviews + key live-verified |
+| 9 | Offline queue (TDD) | ✅ Done + reviews + flush-race fix (concurrency-safe) |
+| 10 | ReviewForm (TDD) | ✅ Done + reviews + price-hardening |
+| 11 | CafePicker | ✅ Done + reviews + unmount guard + fetch timeouts |
+| 12 | Save pipeline + NewReview | ✅ Done + reviews (downscale/orphan decisions recorded) |
+| 13 | Dashboard/routing/flush | ✅ Done + reviews + concurrent-flush guard, `_redirects`, dashboard error state |
+| — | Final whole-app review | ✅ Passed — ready for deploy; chips capitalized + dead icons.svg removed |
+| 14 | Deploy + iPhone acceptance | ⏳ **NEXT — human-assisted. See "Task 14 playbook" below.** |
 
-**Execution order for remaining work: 11 → 9 → 12 → 13 → 14. Nothing is in flight — all completed tasks are fully reviewed and committed.**
+### Task 14 playbook (the only remaining work)
 
-Note for Task 12's implementer: `ReviewDraft.price` arrives pre-validated (regex `/^\d+(\.\d{1,2})?$/`, trimmed) — `Number(draft.price)` in api.ts is safe.
+Follow the plan's Task 14 steps AND its amendment notes (Step 4b photo-downscale; iPhone checklist item 8 about upright photos). Sequence:
+1. **Human:** Justina creates a free Cloudflare account (dash.cloudflare.com — email+password, no card).
+2. From `app/`: `npm run build`, then `npx wrangler login` (opens browser for her to approve), `npx wrangler pages project create matcha-muse --production-branch main`, `npx wrangler pages deploy dist --project-name matcha-muse`. Yields a `https://matcha-muse.pages.dev` URL. (`_redirects` already in `app/public/`, so SPA deep links work.)
+3. **Post-deploy config:** Supabase → Auth → URL Configuration: set Site URL + add Redirect URL to the pages.dev URL. Google Cloud → the Places API key → Website restrictions: add `https://matcha-muse.pages.dev/*`.
+4. **Then implement Step 4b (photo downscaling) WITH Justina present** so it's verified on her actual iPhone (upright-photo check) — do NOT ship it blind; that's why it was deferred here.
+5. **iPhone acceptance checklist** (plan Task 14 Step 4, items 1–8): add-to-home-screen, password login (autofill), camera capture, nearby-cafe confirm, full save appears on dashboard, airplane-mode offline save → reconnect → syncs, draft save, and photo displays upright.
+6. Fix anything the checklist surfaces, then: final branch wrap via **superpowers:finishing-a-development-branch** (merge build/v1 → main; no git remote exists yet — offer to create a private GitHub repo if she wants off-machine backup).
 
 ## Key decisions & deviations (all recorded in plan amendments too)
 
