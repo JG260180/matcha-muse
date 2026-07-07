@@ -538,7 +538,7 @@ export default function StarRating({ label, value, onChange }: Props) {
   return (
     <div className="flex items-center justify-between py-1">
       <span>{label}</span>
-      <div className="flex items-center gap-0.5" role="radiogroup" aria-label={label}>
+      <div className="flex items-center gap-0.5" role="group" aria-label={label}>
         {[1, 2, 3, 4, 5].map((star) => {
           const fill = value == null ? 0 : Math.min(Math.max(value - star + 1, 0), 1);
           return (
@@ -559,7 +559,7 @@ export default function StarRating({ label, value, onChange }: Props) {
             </span>
           );
         })}
-        <span className="ml-2 w-8 text-right font-medium">{value ?? '–'}</span>
+        <span aria-live="polite" className="ml-2 w-8 text-right font-medium">{value ?? '–'}</span>
       </div>
     </div>
   );
@@ -848,7 +848,7 @@ test('save is disabled until overall and price are set, then submits', async () 
   const save = screen.getByRole('button', { name: 'Save matcha' });
   expect(save).toBeDisabled();
 
-  const overall = within(screen.getByRole('radiogroup', { name: 'Overall' }));
+  const overall = within(screen.getByRole('group', { name: 'Overall' }));
   await userEvent.click(overall.getByRole('button', { name: '4.5 stars' }));
   expect(save).toBeDisabled();
 
