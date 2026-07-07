@@ -27,7 +27,18 @@ export async function pending(kv: KV = idb): Promise<QueuedReview[]> {
   return (await kv.get(KEY)) ?? [];
 }
 
-export async function flush(
+let inFlight: Promise<number> | null = null;
+
+export function flush(
+  submit: (item: QueuedReview) => Promise<void>,
+  kv: KV = idb
+): Promise<number> {
+  if (inFlight) return inFlight;
+  inFlight = flushInternal(submit, kv).finally(() => { inFlight = null; });
+  return inFlight;
+}
+
+async function flushInternal(
   submit: (item: QueuedReview) => Promise<void>,
   kv: KV = idb
 ): Promise<number> {

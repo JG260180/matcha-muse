@@ -6,16 +6,21 @@ import SignedImage from '../components/SignedImage';
 
 export default function Dashboard() {
   const [reviews, setReviews] = useState<Review[] | null>(null);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     supabase
       .from('reviews')
       .select('*, cafe:cafes(*)')
       .order('drank_at', { ascending: false })
-      .then(({ data }) => setReviews((data as Review[] | null) ?? []));
+      .then(({ data, error }) => {
+        if (error) { setFetchError(true); setReviews([]); return; }
+        setReviews((data as Review[] | null) ?? []);
+      });
   }, []);
 
   if (reviews === null) return <p className="px-6 text-ink/60">Brewing…</p>;
+  if (fetchError) return <p className="px-6 py-10 text-center text-ink/60">Couldn't load your journal — check your connection and try again.</p>;
 
   const avg = (xs: number[]) =>
     xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(1) : '–';

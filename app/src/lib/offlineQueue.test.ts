@@ -48,6 +48,20 @@ test('an item enqueued during flush is not lost', async () => {
   expect(await pending(kv)).toHaveLength(1);
 });
 
+test('overlapping flush calls do not double-submit', async () => {
+  const kv = memoryKV();
+  await enqueue(item, kv);
+  let release: () => void;
+  const gate = new Promise<void>((r) => { release = r; });
+  const submit = vi.fn().mockImplementation(async () => { await gate; });
+  const p1 = flush(submit, kv);
+  const p2 = flush(submit, kv);
+  release!();
+  await Promise.all([p1, p2]);
+  expect(submit).toHaveBeenCalledTimes(1);
+  expect(await pending(kv)).toHaveLength(0);
+});
+
 test('blobToBase64 / base64ToBlob round-trip preserves content', async () => {
   const original = new Blob(['hello'], { type: 'text/plain' });
   const b64 = await blobToBase64(original);
