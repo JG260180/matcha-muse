@@ -13,6 +13,7 @@ export type Milk = (typeof MILKS)[number];
 export type DrinkStyle = (typeof DRINK_STYLES)[number];
 export type Size = (typeof SIZES)[number];
 export type Temperature = (typeof TEMPERATURES)[number];
+export type Occasion = (typeof OCCASIONS)[number]['key'];
 
 export interface Cafe {
   id: string;
@@ -38,7 +39,7 @@ export interface Review {
   drink_style: DrinkStyle | null;
   size: Size | null;
   price: number;
-  occasions: string[];
+  occasions: Occasion[];
   note: string | null;
   status: 'complete' | 'draft';
   cafe?: Cafe;

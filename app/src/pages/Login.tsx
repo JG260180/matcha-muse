@@ -5,13 +5,16 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    setSending(true);
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: window.location.origin },
     });
+    setSending(false);
     if (error) setError("Couldn't send the link. Check the email address and try again.");
     else setSent(true);
   }
@@ -32,8 +35,12 @@ export default function Login() {
             aria-label="Email"
             className="w-full rounded-xl border border-sand bg-white p-4"
           />
-          <button type="submit" className="w-full rounded-xl bg-matcha-deep p-4 font-medium text-cream">
-            Email me a sign-in link
+          <button
+            type="submit"
+            disabled={sending}
+            className="w-full rounded-xl bg-matcha-deep p-4 font-medium text-cream disabled:opacity-40"
+          >
+            {sending ? 'Sending…' : 'Email me a sign-in link'}
           </button>
           {error && <p className="text-sm text-red-700">{error}</p>}
         </form>
