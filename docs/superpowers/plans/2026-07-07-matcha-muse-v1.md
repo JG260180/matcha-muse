@@ -1153,6 +1153,8 @@ export default function CafePicker({ onSelect }: { onSelect: (c: CafeChoice) => 
 }
 ```
 
+- [ ] **Step 1b (amendment — Task 8 quality-review follow-up): add fetch timeouts.** In `app/src/lib/places.ts`, add `signal: AbortSignal.timeout(8000),` to the fetch options object of BOTH `nearbyCafes` and `searchCafes` (after the `body` property). This bounds hung requests on flaky mobile networks so CafePicker's fallback triggers promptly instead of hanging. Include this file in the Task 11 commit.
+
 - [ ] **Step 2: Verify build.** `npm run test` (existing tests still pass) and `npx tsc --noEmit` → Expected: no type errors (offlineQueue's imports now resolve too).
 
 - [ ] **Step 3: Commit**
