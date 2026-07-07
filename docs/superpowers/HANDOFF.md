@@ -47,8 +47,7 @@ Note for Task 12's implementer: `ReviewDraft.price` arrives pre-validated (regex
 ## Environment / accounts
 
 - **Supabase**: project `matcha-muse`, ref `sodkpgrdoufcicajqoks`, region Sydney. Schema + RLS + private `photos` bucket applied (via SQL editor) and verified. Auth Site URL set to `http://localhost:5173`. Justina's user exists with password (she knows it; never handle her password).
-- **`app/.env.local`** (gitignored, already populated): real `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`; `VITE_GOOGLE_PLACES_KEY` still placeholder `YOUR-PLACES-KEY`.
-- **Google Places key — NEXT HUMAN STEP.** Justina was given the full walkthrough (console.cloud.google.com → project `matcha-muse` → enable billing → enable "Places API (New)" → create API key → restrict to Websites `http://localhost:5173/*` + Places API (New) only). When she supplies the key: put it in `app/.env.local`, restart any dev server, and later (Task 14) add the pages.dev URL to the key's website restrictions.
+- **`app/.env.local`** (gitignored, fully populated): real `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_GOOGLE_PLACES_KEY` (added 2026-07-07 after Justina created it; website-restricted to `http://localhost:5173/*`, Places API (New) only). **Verified working** — a live searchText call with Referer localhost:5173 returned real Adelaide matcha cafes. Remaining at Task 14: add the pages.dev URL to the key's website restrictions.
 - **Cloudflare** (Task 14): account not created yet. Post-deploy config also required: Supabase Site URL + redirect URLs → pages.dev; Google key referrer += pages.dev.
 - Dev server: was running during the session; stopped at session end. Start with `npm run dev` in `app/` (Vite may pick 5174+ if 5173 is taken — check).
 
