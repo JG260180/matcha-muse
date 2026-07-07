@@ -18,8 +18,8 @@ export default function Chips<T extends string>({ label, options, value, onChang
             onClick={() => onChange(value === o ? null : o)}
             className={
               value === o
-                ? 'rounded-full bg-matcha-deep px-4 py-2 text-sm text-cream'
-                : 'rounded-full bg-sand px-4 py-2 text-sm text-sand-ink'
+                ? 'rounded-full bg-matcha-deep px-4 py-2 text-sm capitalize text-cream'
+                : 'rounded-full bg-sand px-4 py-2 text-sm capitalize text-sand-ink'
             }
           >
             {o}
