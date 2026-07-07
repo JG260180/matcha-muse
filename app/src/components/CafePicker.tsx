@@ -14,19 +14,21 @@ export default function CafePicker({ onSelect }: { onSelect: (c: CafeChoice) => 
   const [manualSuburb, setManualSuburb] = useState('');
 
   useEffect(() => {
+    let cancelled = false;
     if (!('geolocation' in navigator)) { setFailed(true); setCandidates([]); return; }
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
-          setCandidates(await nearbyCafes(pos.coords.latitude, pos.coords.longitude));
+          const result = await nearbyCafes(pos.coords.latitude, pos.coords.longitude);
+          if (!cancelled) setCandidates(result);
         } catch {
-          setFailed(true);
-          setCandidates([]);
+          if (!cancelled) { setFailed(true); setCandidates([]); }
         }
       },
-      () => { setFailed(true); setCandidates([]); },
+      () => { if (!cancelled) { setFailed(true); setCandidates([]); } },
       { timeout: 8000 }
     );
+    return () => { cancelled = true; };
   }, []);
 
   async function runSearch(e: React.FormEvent) {
