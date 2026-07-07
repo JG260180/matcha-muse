@@ -705,6 +705,8 @@ git commit -m "feat: Google Places nearby and text search with parsed candidates
 
 ### Task 9: Offline queue (TDD)
 
+> **Amendment (2026-07-08, post-quality-review):** `flush` re-reads the queue before its final write and removes only the submitted ids (tracked in a `Set`), rather than overwriting storage with a stale `remaining` snapshot. This closes a silent-data-loss race: if a review is `enqueue`d while `flush` is mid-upload (plausible right after reconnect, when `flush` fires on the `online` event and a still-flaky save also queues), the old full-overwrite clobbered it. Two tests added: a concurrent-enqueue-during-flush test (proves the fix) and a `blobToBase64`/`base64ToBlob` round-trip test. A comment near `base64ToBlob` flags photo-size/memory for Task 12 (downscale before queuing). Applied in commit after 2f7437c.
+
 **Files:** Create: `app/src/lib/offlineQueue.ts`, `app/src/lib/offlineQueue.test.ts`.
 
 - [ ] **Step 1: Write the failing test** (`offlineQueue.test.ts`)
