@@ -57,7 +57,8 @@ export function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-// Photos are stored as base64 in the queue; Task 12 should downscale before enqueuing to bound IndexedDB size.
+// Photos are stored as base64 in the queue; downscaling is deferred to Task 14 (needs on-device
+// verification of EXIF orientation) to bound IndexedDB size and speed up uploads on mobile.
 export async function base64ToBlob(b64: string): Promise<Blob> {
   return (await fetch(b64)).blob();
 }

@@ -1174,6 +1174,10 @@ git commit -m "feat: cafe picker with nearby detection, search, and manual fallb
 
 ### Task 12: Save pipeline (api.ts) and NewReview page
 
+> **Amendment (2026-07-08, post-quality-review):** Task 12 merged as specified. Two review findings recorded as explicit v1 decisions rather than silent gaps:
+> 1. **Photo downscaling deferred to Task 14** (moved from the Task 9 comment's "Task 12 should downscale"). Downscaling is a canvas resize that runs on every photo; its classic iOS failure is silent EXIF-orientation rotation, which a fallback can't detect and which can't be verified without a real device + photo. It will be implemented and verified on-device during Task 14 (see the Task 14 checklist item added below). Until then, full-resolution photos upload directly (correct, just slower on flaky mobile) and the rare offline-queue path stores full-res base64 (bounded in practice by single-user, short-lived backlogs).
+> 2. **Orphaned-photo-on-insert-failure accepted as v1 debt.** `saveReview` uploads the photo before the `reviews` insert; if the insert throws, the photo is left unreferenced in storage. No data loss/corruption, only unreclaimed storage at single-user scale. Not worth reorder complexity for v1; revisit with a storage sweep in Phase 2 if it ever matters.
+
 **Files:** Create: `app/src/lib/api.ts`, `app/src/components/SignedImage.tsx`, `app/src/pages/NewReview.tsx`.
 
 - [ ] **Step 1: Create `app/src/lib/api.ts`**
@@ -1558,6 +1562,9 @@ Expected: a live URL like `https://matcha-muse.pages.dev`.
   5. Full review saves; appears on dashboard with photo.
   6. Airplane mode: save a review → "Saved on your phone" message; airplane off → reopen app → review appears on dashboard (queue flushed).
   7. Draft save works and shows in the drafts notice.
+  8. A saved photo displays correctly (right-side-up, not rotated) on the dashboard and in the review — confirms photo capture/upload/signed-URL works on a real iPhone.
+
+- [ ] **Step 4b (deferred from Task 12): implement + verify photo downscaling.** Now that photos can be tested on Justina's actual iPhone, add a `downscalePhoto(blob, maxEdge=1600, quality=0.8)` helper in `app/src/lib/api.ts` and call it once at the top of `saveReviewOrQueue` (use the result for BOTH the `saveReview` attempt and the offline-queue base64), so it shrinks uploads and bounds queue storage on both paths. It MUST: use `createImageBitmap(blob, { imageOrientation: 'from-image' })` so iOS EXIF rotation is respected; return the original blob unchanged on any failure (no canvas support, decode error, or if the result isn't smaller) so a photo is never lost or corrupted. Verify on-device that a portrait photo taken on the iPhone still displays upright after saving (checklist item 8 above), and that a saved image is visibly smaller than the raw camera file. Update the comment in `offlineQueue.ts` (currently points here) once done.
 
 - [ ] **Step 5: Record and commit.** Note any checklist failures as issues to fix before Plan 2. Then:
 
