@@ -24,14 +24,16 @@ Work is on branch **`build/v1`** (repo root `C:\Users\justi\OneDrive\Documents\M
 | 6 | Types/client/login | ✅ Done + reviews + fixes (see amendments) |
 | 7 | StarRating (TDD) | ✅ Done + reviews + a11y fix |
 | 8 | Places lookup (TDD) | ✅ Code done + both reviews. ⏳ **HUMAN STEP PENDING: Google API key** (see below) |
-| 10 | ReviewForm (TDD) | ✅ Built (commit 58488bf), ✅ spec review passed. ⏳ **Quality review was in flight when session ended** — check for its result in this session's history; if absent, re-run quality review on range ba47cce..58488bf before building on it |
+| 10 | ReviewForm (TDD) | ✅ Done + both reviews + hardening fixes applied (commit ad7950e: strict price regex, trimmed price on both submit paths, inline invalid-price hint, draft-path + nonsense-price tests; 7 tests total now pass) |
 | 9 | Offline queue (TDD) | ❌ Not started. **Deliberately reordered to AFTER Tasks 10+11** (its imports need ReviewForm + CafePicker types; plan sanctions this) |
 | 11 | CafePicker | ❌ Not started. Includes plan amendment Step 1b: add `AbortSignal.timeout(8000)` to both fetches in `places.ts` |
 | 12 | Save pipeline + NewReview | ❌ Not started |
 | 13 | Dashboard/routing/flush | ❌ Not started |
 | 14 | Deploy + iPhone acceptance | ❌ Not started (human-assisted: Cloudflare account, post-deploy config) |
 
-**Execution order for remaining work: (close out 10's quality review) → 11 → 9 → 12 → 13 → 14.**
+**Execution order for remaining work: 11 → 9 → 12 → 13 → 14. Nothing is in flight — all completed tasks are fully reviewed and committed.**
+
+Note for Task 12's implementer: `ReviewDraft.price` arrives pre-validated (regex `/^\d+(\.\d{1,2})?$/`, trimmed) — `Number(draft.price)` in api.ts is safe.
 
 ## Key decisions & deviations (all recorded in plan amendments too)
 

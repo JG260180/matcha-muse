@@ -832,6 +832,8 @@ git commit -m "feat: IndexedDB offline queue with flush semantics"
 
 ### Task 10: ReviewForm (TDD)
 
+> **Amendment (2026-07-07, post-quality-review):** price validation tightened and draft path tested. In `ReviewForm.tsx`: `const priceTrimmed = d.price.trim(); const priceOk = /^\d+(\.\d{1,2})?$/.test(priceTrimmed); const canSave = d.overall != null && priceOk;` — both submit paths pass `price: priceTrimmed`; an inline hint `<p className="text-xs text-ink/60">Enter a price like 6.50</p>` renders when price is non-empty but invalid. Two tests added: "nonsense price keeps save disabled" (types `Infinity`, expects Save disabled) and "save as draft submits with draft status" (overall 4 + price 7 → draft button → onSubmit with `status: 'draft'`). Applied in commit(s) after 58488bf.
+
 **Files:** Create: `app/src/components/Chips.tsx`, `app/src/components/ReviewForm.tsx`, `app/src/components/ReviewForm.test.tsx`.
 
 - [ ] **Step 1: Write the failing test** (`ReviewForm.test.tsx`)
