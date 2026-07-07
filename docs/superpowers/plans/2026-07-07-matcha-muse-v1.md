@@ -1038,6 +1038,8 @@ git commit -m "feat: full review form with chips, occasions, and validation"
 
 ### Task 11: CafePicker component
 
+> **Amendment (2026-07-08, post-quality-review):** the geolocation/`nearbyCafes` effect guards against setState-after-unmount with a `cancelled` flag set in the effect cleanup — every `setCandidates`/`setFailed` inside the async success/error callbacks is wrapped in `if (!cancelled)`. Prevents a slow nearby-lookup resolving after `NewReview` (Task 12) has swapped the picker out. Applied in commit after dcb00d8.
+
 **Files:** Create: `app/src/components/CafePicker.tsx`.
 
 - [ ] **Step 1: Implement `CafePicker.tsx`** (geolocation → nearby list; fallbacks: search by name, manual create — per spec error handling)
