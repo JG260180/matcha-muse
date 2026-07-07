@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
+import { flush } from './lib/offlineQueue';
+import { submitQueued } from './lib/api';
 import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import NewReview from './pages/NewReview';
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -12,14 +17,28 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (!session) return;
+    const sync = () => { void flush(submitQueued); };
+    sync();
+    window.addEventListener('online', sync);
+    return () => window.removeEventListener('online', sync);
+  }, [session]);
+
   if (session === undefined) return null;
   if (!session) return <Login />;
 
   return (
-    <div className="min-h-screen bg-cream text-ink">
-      <header className="px-6 pt-8 pb-4">
-        <h1 className="font-display text-2xl">Matcha Muse</h1>
-      </header>
-    </div>
+    <BrowserRouter>
+      <div className="min-h-screen bg-cream text-ink">
+        <header className="px-6 pt-8 pb-2">
+          <h1 className="font-display text-2xl">Matcha Muse</h1>
+        </header>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/new" element={<NewReview />} />
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
 }
