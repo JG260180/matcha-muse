@@ -22,8 +22,8 @@ Phase 1 is deliberately private: single user, email-link login, no public pages.
 
 - **Platform:** Progressive Web App (PWA) added to the iPhone home screen via Safari. No App Store, no Mac, no Apple fees for v1. Upgrade path to App Store exists (wrap the PWA or rebuild native) when going public.
 - **Ratings:** 1–5 in half steps for overall, taste, sweetness, texture. Overall is Justina's own gut-feel score (not an auto-average) and is the headline number everywhere.
-- **Size:** recorded as fact (S / M / L, optional ml), not rated. Combined with price it powers value-for-money comparisons.
-- **Drink details recorded:** hot/iced, milk type (dairy/oat/soy/almond/none), drink style (latte/straight/other), optional free-text note.
+- **Size:** recorded as fact (S / M / L), not rated. Combined with price it powers value-for-money comparisons.
+- **Drink details recorded:** hot/iced, milk type (dairy/oat/soy/almond/coconut/other), drink style (latte/hybrid/other), optional free-text note.
 - **Occasion tickboxes:** Hangout, Grab & go, Business mtg, Dessert/occasion — multi-select, any combination.
 - **Data:** cloud database from day one (Supabase). Photos in Supabase Storage.
 - **Instagram:** two-tap share cards via the iOS share sheet. No Meta developer app in v1.
@@ -56,7 +56,7 @@ Running cost target: **$0/month** at personal scale. One-time setups: free Supab
 ## Data model
 
 - **cafes** — id, name, address, suburb, latitude, longitude, google_place_id, created_at. Shared records (future-proof for multi-user).
-- **reviews** — id, user_id, cafe_id, photo_path, drank_at (EXIF date for imports, now for live), overall*, taste, sweetness, texture (all 0.5–5.0 in 0.5 steps), temperature (hot/iced), milk, drink_style, size (S/M/L), size_ml (optional), price* (AUD as paid), occasions (set of: hangout, grab_go, business_mtg, dessert_occasion), note, status (complete | draft), created_at. Fields marked * are required; everything else optional so a rushed entry can be completed later (drafts surfaced on the dashboard).
+- **reviews** — id, user_id, cafe_id, photo_path, drank_at (EXIF date for imports, now for live), overall*, taste, sweetness, texture (all 0.5–5.0 in 0.5 steps), temperature (hot/iced), milk (dairy | oat | soy | almond | coconut | other), drink_style (latte | hybrid | other), size (S/M/L), price* (AUD as paid), occasions (set of: hangout, grab_go, business_mtg, dessert_occasion), note, status (complete | draft), created_at. Fields marked * are required; everything else optional so a rushed entry can be completed later (drafts surfaced on the dashboard).
 - **menu_photos** — id, cafe_id, photo_path, taken_at.
 
 Derived, not stored: value-for-money (price normalised by size), per-cafe averages, distance from current location.
