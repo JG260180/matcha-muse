@@ -32,17 +32,19 @@ export async function flush(
   kv: KV = idb
 ): Promise<number> {
   const queue = (await kv.get(KEY)) ?? [];
-  const remaining: QueuedReview[] = [];
+  const submittedIds = new Set<string>();
   let sent = 0;
   for (const item of queue) {
     try {
       await submit(item);
       sent++;
+      submittedIds.add(item.id);
     } catch {
-      remaining.push(item);
+      // leave in queue; only submitted ids are removed below
     }
   }
-  await kv.set(KEY, remaining);
+  const latest = (await kv.get(KEY)) ?? [];
+  await kv.set(KEY, latest.filter((i) => !submittedIds.has(i.id)));
   return sent;
 }
 
@@ -55,6 +57,7 @@ export function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
+// Photos are stored as base64 in the queue; Task 12 should downscale before enqueuing to bound IndexedDB size.
 export async function base64ToBlob(b64: string): Promise<Blob> {
   return (await fetch(b64)).blob();
 }
