@@ -1391,6 +1391,11 @@ git commit -m "feat: save pipeline with offline queueing and new-review page"
 
 ### Task 13: Dashboard journal, routing, queue flush
 
+> **Amendment (2026-07-08, post-quality-review):** three fixes applied on top of the base implementation:
+> 1. **Concurrent-flush guard (critical correctness).** `flush` runs on mount AND on the `online` event; on cold-launch-while-reconnecting both could fire, each reading the same queue and submitting the same review → duplicate DB rows (the Task 9 fix protected queue consistency, not against two overlapping flush loops). Fixed with a module-level in-flight promise in `offlineQueue.ts`: a second `flush()` call while one is running returns the existing promise instead of starting a new loop. TDD test added (two overlapping flushes → submit called once per item).
+> 2. **SPA routing fallback (critical for deploy).** Added `app/public/_redirects` (`/*  /index.html  200`) so Cloudflare Pages serves the app shell for deep links / PWA relaunches on `/new` instead of 404. Vite copies it into `dist/` on build. Removes a guaranteed failure from the Task 14 iPhone acceptance run.
+> 3. **Dashboard fetch error state.** A failed reviews query previously fell through to the "Your first matcha awaits" empty state (misleading "did I lose my data" for a full journal). Now distinguishes error (shows "Couldn't load your journal — check your connection") from genuine empty.
+
 **Files:** Create: `app/src/pages/Dashboard.tsx`. Modify: `app/src/App.tsx`.
 
 - [ ] **Step 1: Create `Dashboard.tsx`**
