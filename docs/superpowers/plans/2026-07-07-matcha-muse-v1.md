@@ -351,6 +351,7 @@ export type Milk = (typeof MILKS)[number];
 export type DrinkStyle = (typeof DRINK_STYLES)[number];
 export type Size = (typeof SIZES)[number];
 export type Temperature = (typeof TEMPERATURES)[number];
+export type Occasion = (typeof OCCASIONS)[number]['key'];
 
 export interface Cafe {
   id: string;
@@ -376,7 +377,7 @@ export interface Review {
   drink_style: DrinkStyle | null;
   size: Size | null;
   price: number;
-  occasions: string[];
+  occasions: Occasion[];
   note: string | null;
   status: 'complete' | 'draft';
   cafe?: Cafe;
@@ -911,7 +912,7 @@ import StarRating from './StarRating';
 import Chips from './Chips';
 import {
   MILKS, DRINK_STYLES, SIZES, TEMPERATURES, OCCASIONS,
-  type Milk, type DrinkStyle, type Size, type Temperature,
+  type Milk, type DrinkStyle, type Size, type Temperature, type Occasion,
 } from '../lib/types';
 
 export interface ReviewDraft {
@@ -924,7 +925,7 @@ export interface ReviewDraft {
   drink_style: DrinkStyle | null;
   size: Size | null;
   price: string;
-  occasions: string[];
+  occasions: Occasion[];
   note: string;
   status: 'complete' | 'draft';
 }
@@ -940,7 +941,7 @@ export default function ReviewForm({ onSubmit }: { onSubmit: (d: ReviewDraft) =>
   const patch = (p: Partial<ReviewDraft>) => setD((prev) => ({ ...prev, ...p }));
   const canSave = d.overall != null && d.price.trim() !== '' && !isNaN(Number(d.price));
 
-  function toggleOccasion(key: string, on: boolean) {
+  function toggleOccasion(key: Occasion, on: boolean) {
     patch({ occasions: on ? [...d.occasions, key] : d.occasions.filter((k) => k !== key) });
   }
 
