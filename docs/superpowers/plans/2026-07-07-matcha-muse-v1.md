@@ -6,7 +6,7 @@
 
 **Architecture:** React + Vite SPA in `app/` at the repo root, styled with Tailwind using the "Ceremony" palette. Supabase provides Postgres (with RLS), magic-link auth, and private photo storage. Google Places API (New) is called directly from the browser for cafe lookup. Reviews that fail to save (offline) queue in IndexedDB and flush when connectivity returns. Deployed to Cloudflare Pages.
 
-**Tech Stack:** React 18, TypeScript, Vite, vite-plugin-pwa, Tailwind CSS 3, react-router-dom, @supabase/supabase-js v2, idb-keyval, Vitest + Testing Library, sharp (icon generation only), Cloudflare Pages (wrangler).
+**Tech Stack:** React 19 (scaffold pulled latest; approved deviation from the originally planned React 18 — noted in Task 1 review), TypeScript, Vite, vite-plugin-pwa, Tailwind CSS 3, react-router-dom, @supabase/supabase-js v2, idb-keyval, Vitest + Testing Library, sharp (icon generation only), Cloudflare Pages (wrangler).
 
 **Spec:** `docs/superpowers/specs/2026-07-07-matcha-muse-design.md`. Deferred to Plan 2: import/back-dating, cafe pages, near-me, menu photos. Deferred to Plan 3: dashboard filters/sort, share cards. This is deliberate scope, not a gap.
 
