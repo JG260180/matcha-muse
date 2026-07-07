@@ -331,6 +331,8 @@ git commit -m "feat: database schema, RLS policies, photo storage bucket"
 
 ### Task 6: Types, Supabase client, magic-link login
 
+> **Amendment (2026-07-07, post-implementation):** Magic-link login failed in practice — the owner's Microsoft 365 mail security pre-scans links, consuming the one-time token before she can click it (`otp_expired`), and Supabase's free tier doesn't permit editing the email template (to switch to a visible OTP code) without custom SMTP. v1 therefore uses **email + password** via `supabase.auth.signInWithPassword`; the owner creates her own user (with password) in the Supabase dashboard (Authentication → Users → Add user, auto-confirm on). `Login.tsx` was replaced accordingly (email + password fields with `autoComplete` hints for iOS password autofill, busy state, generic error). Revisit OTP-code login in Phase 2 once custom SMTP exists.
+
 **Files:** Create: `app/src/lib/types.ts`, `app/src/lib/supabase.ts`, `app/src/pages/Login.tsx`. Modify: `app/src/App.tsx`.
 
 - [ ] **Step 1: Create `app/src/lib/types.ts`**
