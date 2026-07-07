@@ -30,7 +30,9 @@ const EMPTY: ReviewDraft = {
 export default function ReviewForm({ onSubmit }: { onSubmit: (d: ReviewDraft) => void }) {
   const [d, setD] = useState(EMPTY);
   const patch = (p: Partial<ReviewDraft>) => setD((prev) => ({ ...prev, ...p }));
-  const canSave = d.overall != null && d.price.trim() !== '' && !isNaN(Number(d.price));
+  const priceTrimmed = d.price.trim();
+  const priceOk = /^\d+(\.\d{1,2})?$/.test(priceTrimmed);
+  const canSave = d.overall != null && priceOk;
 
   function toggleOccasion(key: Occasion, on: boolean) {
     patch({ occasions: on ? [...d.occasions, key] : d.occasions.filter((k) => k !== key) });
@@ -40,7 +42,7 @@ export default function ReviewForm({ onSubmit }: { onSubmit: (d: ReviewDraft) =>
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        if (canSave) onSubmit({ ...d, status: 'complete' });
+        if (canSave) onSubmit({ ...d, price: priceTrimmed, status: 'complete' });
       }}
       className="space-y-4 px-6 pb-10"
     >
@@ -65,6 +67,9 @@ export default function ReviewForm({ onSubmit }: { onSubmit: (d: ReviewDraft) =>
           className="mt-1 w-full rounded-xl border border-sand bg-white p-3"
         />
       </label>
+      {d.price.trim() !== '' && !priceOk && (
+        <p className="text-xs text-ink/60">Enter a price like 6.50</p>
+      )}
 
       <fieldset>
         <legend className="text-sm text-ink/70">Occasion</legend>
@@ -100,7 +105,7 @@ export default function ReviewForm({ onSubmit }: { onSubmit: (d: ReviewDraft) =>
       <button
         type="button"
         disabled={!canSave}
-        onClick={() => onSubmit({ ...d, status: 'draft' })}
+        onClick={() => onSubmit({ ...d, price: priceTrimmed, status: 'draft' })}
         className="w-full rounded-xl border border-matcha-deep p-3 text-matcha-deep disabled:opacity-40"
       >
         Save as draft — finish details later

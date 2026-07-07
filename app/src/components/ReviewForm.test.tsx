@@ -27,3 +27,24 @@ test('save is disabled until overall and price are set, then submits', async () 
     })
   );
 });
+
+test('nonsense price keeps save disabled', async () => {
+  const onSubmit = vi.fn();
+  render(<ReviewForm onSubmit={onSubmit} />);
+  const overall = within(screen.getByRole('group', { name: 'Overall' }));
+  await userEvent.click(overall.getByRole('button', { name: '4 stars' }));
+  await userEvent.type(screen.getByLabelText('Price'), 'Infinity');
+  expect(screen.getByRole('button', { name: 'Save matcha' })).toBeDisabled();
+});
+
+test('save as draft submits with draft status', async () => {
+  const onSubmit = vi.fn();
+  render(<ReviewForm onSubmit={onSubmit} />);
+  const overall = within(screen.getByRole('group', { name: 'Overall' }));
+  await userEvent.click(overall.getByRole('button', { name: '4 stars' }));
+  await userEvent.type(screen.getByLabelText('Price'), '7');
+  await userEvent.click(screen.getByRole('button', { name: 'Save as draft — finish details later' }));
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ overall: 4, price: '7', status: 'draft' })
+  );
+});
