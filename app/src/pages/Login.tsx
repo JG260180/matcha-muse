@@ -3,48 +3,52 @@ import { supabase } from '../lib/supabase';
 
 export default function Login() {
   const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setSending(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin },
-    });
-    setSending(false);
-    if (error) setError("Couldn't send the link. Check the email address and try again.");
-    else setSent(true);
+    setBusy(true);
+    setError(null);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setBusy(false);
+    if (error) setError("That didn't work — check the email and password and try again.");
   }
 
   return (
     <div className="flex min-h-screen flex-col justify-center bg-cream px-8 text-ink">
       <h1 className="font-display text-3xl">Matcha Muse</h1>
-      {sent ? (
-        <p className="mt-4">Check your email — tap the sign-in link on this phone.</p>
-      ) : (
-        <form onSubmit={submit} className="mt-6 space-y-3">
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            aria-label="Email"
-            className="w-full rounded-xl border border-sand bg-white p-4"
-          />
-          <button
-            type="submit"
-            disabled={sending}
-            className="w-full rounded-xl bg-matcha-deep p-4 font-medium text-cream disabled:opacity-40"
-          >
-            {sending ? 'Sending…' : 'Email me a sign-in link'}
-          </button>
-          {error && <p className="text-sm text-red-700">{error}</p>}
-        </form>
-      )}
+      <form onSubmit={submit} className="mt-6 space-y-3">
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          aria-label="Email"
+          autoComplete="email"
+          className="w-full rounded-xl border border-sand bg-white p-4"
+        />
+        <input
+          type="password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          aria-label="Password"
+          autoComplete="current-password"
+          className="w-full rounded-xl border border-sand bg-white p-4"
+        />
+        <button
+          type="submit"
+          disabled={busy}
+          className="w-full rounded-xl bg-matcha-deep p-4 font-medium text-cream disabled:opacity-40"
+        >
+          {busy ? 'Signing in…' : 'Sign in'}
+        </button>
+        {error && <p className="text-sm text-red-700">{error}</p>}
+      </form>
     </div>
   );
 }
