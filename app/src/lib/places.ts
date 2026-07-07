@@ -39,6 +39,7 @@ export async function nearbyCafes(latitude: number, longitude: number): Promise<
       maxResultCount: 8,
       locationRestriction: { circle: { center: { latitude, longitude }, radius: 300 } },
     }),
+    signal: AbortSignal.timeout(8000),
   });
   if (!res.ok) throw new Error(`Places nearby search failed: ${res.status}`);
   return parsePlaces((await res.json()).places);
@@ -49,6 +50,7 @@ export async function searchCafes(query: string): Promise<CafeCandidate[]> {
     method: 'POST',
     headers: headers(),
     body: JSON.stringify({ textQuery: query, regionCode: 'AU', maxResultCount: 8 }),
+    signal: AbortSignal.timeout(8000),
   });
   if (!res.ok) throw new Error(`Places text search failed: ${res.status}`);
   return parsePlaces((await res.json()).places);
