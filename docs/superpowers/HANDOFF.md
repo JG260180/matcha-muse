@@ -32,7 +32,21 @@ Work is on branch **`build/v1`** (repo root `C:\Users\justi\OneDrive\Documents\M
 | 12 | Save pipeline + NewReview | ✅ Done + reviews (downscale/orphan decisions recorded) |
 | 13 | Dashboard/routing/flush | ✅ Done + reviews + concurrent-flush guard, `_redirects`, dashboard error state |
 | — | Final whole-app review | ✅ Passed — ready for deploy; chips capitalized + dead icons.svg removed |
-| 14 | Deploy + iPhone acceptance | ⏳ **NEXT — human-assisted. See "Task 14 playbook" below.** |
+| 14 | Deploy + iPhone acceptance | 🚧 **Deploy DONE (2026-07-08); iPhone acceptance + Step 4b remain (on-device with Justina).** |
+
+### Task 14 progress (updated 2026-07-08)
+
+**DONE (from Justina's machine):**
+- `npm run build` clean, 12 tests passing.
+- `wrangler login` (Justina's Cloudflare account, justina@lightspeedconsulting.com.au, account id a7da89bb5f2a02f20be36b193e05f6e5).
+- Pages project `matcha-muse` created (production branch `main`); deployed `app/dist` to production. **Live at https://matcha-muse.pages.dev** (200; deep-link `/new` returns 200 via `_redirects`). Note: we deploy from `build/v1` with `--branch main --commit-dirty=true` so it lands on the production URL.
+- Supabase → Auth → URL Configuration: Site URL = `https://matcha-muse.pages.dev`; Redirect URL `https://matcha-muse.pages.dev/**` added.
+- Google Cloud → Maps Platform API Key → Website restrictions: added `https://matcha-muse.pages.dev/*` (localhost referrer kept). Google warns settings can take ~5 min to propagate.
+
+**STILL TO DO (needs Justina + her iPhone, on-device):**
+- Step 4 iPhone acceptance checklist (items 1–8 below).
+- Step 4b: implement + verify `downscalePhoto` in `app/src/lib/api.ts` WITH her present (do NOT ship blind — must confirm portrait photos stay upright on her actual iPhone). Update the pointer comment in `offlineQueue.ts` once done.
+- Step 5 commit (`chore: v1 deployed to Cloudflare Pages, iPhone acceptance run`) after acceptance passes.
 
 ### Task 14 playbook (the only remaining work)
 
