@@ -39,6 +39,7 @@ describe('CafeStack', () => {
     expect(screen.getByText(/450 m/)).toBeDefined();
     expect(screen.getByText(/oat · iced/)).toBeDefined();
     expect(screen.queryByText(/matchas/)).toBeNull(); // no count badge
+    expect(screen.queryByRole('button')).toBeNull(); // plain card, not a toggle
   });
 
   it('renders multiple reviews as a collapsed stack with count and average', () => {
@@ -80,5 +81,37 @@ describe('CafeStack', () => {
     render(<CafeStack group={manual} expanded={false} onToggle={() => {}} />);
     expect(screen.getAllByRole('link', { name: /Google/ })).toHaveLength(2); // only from first render
     expect(screen.getByText(/added manually/)).toBeDefined();
+  });
+
+  describe('Review on Google clipboard copy', () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+
+    beforeEach(() => {
+      writeText.mockClear();
+      Object.assign(navigator, { clipboard: { writeText } });
+    });
+
+    function clickReviewLink() {
+      const link = screen.getByRole('link', { name: /Review on Google/ });
+      // jsdom cannot navigate; suppress the default so the click stays local.
+      link.addEventListener('click', (e) => e.preventDefault());
+      fireEvent.click(link);
+    }
+
+    it('copies the most recent review note to the clipboard', () => {
+      const group = makeGroup([
+        makeReview({ note: 'lovely foam' }), // reviews[0] = most recent
+        makeReview({ note: 'older note', drank_at: '2026-06-01T10:00:00Z' }),
+      ]);
+      render(<CafeStack group={group} expanded={false} onToggle={() => {}} />);
+      clickReviewLink();
+      expect(writeText).toHaveBeenCalledWith('lovely foam');
+    });
+
+    it('does not touch the clipboard when the note is null', () => {
+      render(<CafeStack group={makeGroup([makeReview({ note: null })])} expanded={false} onToggle={() => {}} />);
+      clickReviewLink();
+      expect(writeText).not.toHaveBeenCalled();
+    });
   });
 });
