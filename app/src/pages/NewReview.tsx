@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import CafePicker, { type CafeChoice } from '../components/CafePicker';
 import ReviewForm, { type ReviewDraft } from '../components/ReviewForm';
@@ -15,9 +15,24 @@ export default function NewReview() {
 
   function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
+    if (!file) return;
     setPhoto(file);
-    setPhotoUrl(file ? URL.createObjectURL(file) : null);
+    setPhotoUrl(URL.createObjectURL(file));
+    // Reset so picking the same file again after removing still fires onChange.
+    e.target.value = '';
   }
+
+  function removePhoto() {
+    setPhoto(null);
+    setPhotoUrl(null);
+  }
+
+  // Revoke the object URL when it changes or on unmount so blobs aren't leaked.
+  useEffect(() => {
+    return () => {
+      if (photoUrl) URL.revokeObjectURL(photoUrl);
+    };
+  }, [photoUrl]);
 
   async function onSubmit(draft: ReviewDraft) {
     if (!choice) return;
@@ -45,16 +60,31 @@ export default function NewReview() {
   return (
     <div className="pb-6 pt-2">
       <div className="px-6 pb-4">
-        <label className="block">
-          {photoUrl ? (
+        {photoUrl ? (
+          <div className="relative">
             <img src={photoUrl} alt="Your matcha" className="h-56 w-full rounded-2xl object-cover" />
-          ) : (
-            <span className="flex h-56 w-full items-center justify-center rounded-2xl bg-matcha-mist text-matcha-deep">
-              Tap to photograph your matcha
-            </span>
-          )}
-          <input type="file" accept="image/*" capture="environment" onChange={onPhoto} className="hidden" />
-        </label>
+            <button
+              type="button"
+              onClick={removePhoto}
+              aria-label="Remove photo"
+              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-ink/60 text-lg leading-none text-cream backdrop-blur"
+            >
+              ✕
+            </button>
+          </div>
+        ) : (
+          <div className="flex h-56 w-full flex-col items-center justify-center gap-3 rounded-2xl bg-matcha-mist text-matcha-deep">
+            <span className="text-sm">Add a photo of your matcha</span>
+            <label className="cursor-pointer rounded-xl bg-matcha-deep px-5 py-2.5 text-cream">
+              Take a photo
+              <input type="file" accept="image/*" capture="environment" onChange={onPhoto} className="hidden" />
+            </label>
+            <label className="cursor-pointer text-sm underline">
+              Choose from library
+              <input type="file" accept="image/*" onChange={onPhoto} className="hidden" />
+            </label>
+          </div>
+        )}
       </div>
 
       {!choice ? (
