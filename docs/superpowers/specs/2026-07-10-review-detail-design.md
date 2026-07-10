@@ -18,12 +18,15 @@ Every logged matcha becomes tappable, opening a full-screen review page at `/rev
 ## The review page (`/review/:id`)
 
 - Fetches the review by id with cafe join (same select shape as Dashboard). Unknown id or fetch failure → the app-standard "couldn't load" message.
-- Layout top to bottom: photo (SignedImage, full-width, with the NewReview-style ✕ overlay), cafe name + drank-at date (read-only), then the review form pre-filled with all saved values.
-- **Form reuse:** `ReviewForm` gains an optional `initial?: ReviewDraft` prop (defaults to the current EMPTY) and configurable button labels, so NewReview behaviour is unchanged and the detail page reuses the same component. Occasions, chips, stars, price, note all behave exactly as when logging.
-- **Buttons on the detail page:**
-  - **Save changes** (primary) — persists edits; if the review was a draft, this also flips `status` to `complete`.
-  - **Keep as draft** (secondary, shown only when the review is currently a draft) — saves edits, stays `draft`.
+- **Two modes.** A *completed* review opens in **view mode**; editing requires deliberately tapping an **Edit** button. A *draft* opens directly in **edit mode** (its whole purpose is being finished).
+- **View mode** (top to bottom): photo (SignedImage, full-width, no overlay), cafe name + drank-at date, all saved details rendered read-only (stars shown, chips/occasions/price/note as text), then:
+  - **Edit** (primary) — switches to edit mode.
   - **Delete this matcha** (destructive, bottom) — see Deleting.
+- **Edit mode**: photo with the NewReview-style ✕ overlay (replace/remove), cafe name + date still read-only, then the review form pre-filled with all saved values, then:
+  - **Save changes** (primary) — persists edits and returns to view mode; if the review was a draft, this also flips `status` to `complete`.
+  - **Keep as draft** (secondary, shown only when the review is currently a draft) — saves edits, stays `draft`.
+  - **Cancel** (plain) — discards unsaved edits, returns to view mode (for a draft, back to the journal).
+- **Form reuse:** `ReviewForm` gains an optional `initial?: ReviewDraft` prop (defaults to the current EMPTY) and configurable button labels, so NewReview behaviour is unchanged and edit mode reuses the same component. Occasions, chips, stars, price, note all behave exactly as when logging.
 - **Cafe is not editable.** Wrong cafe = delete and re-log. Recorded as a deliberate v1-of-this-feature limit.
 
 ## Photo editing
@@ -64,6 +67,6 @@ Every logged matcha becomes tappable, opening a full-screen review page at `/rev
 
 ## Testing
 
-- **Unit (TDD):** `ReviewForm` initial-values prop (pre-fills fields; EMPTY default keeps NewReview behaviour; draft-only secondary button visibility); two-step delete confirm component behaviour (first tap arms, second fires, reset on re-render/navigation); Dashboard drafts filter logic (badge presence, notice toggle) via component tests; CafeStack link changes (fanned cards and single card link to `/review/:id`; stack header still toggles).
+- **Unit (TDD):** `ReviewForm` initial-values prop (pre-fills fields; EMPTY default keeps NewReview behaviour; draft-only secondary button visibility); view↔edit mode switching (completed opens in view mode with Edit button; draft opens in edit mode; Cancel discards); two-step delete confirm component behaviour (first tap arms, second fires, reset on re-render/navigation); Dashboard drafts filter logic (badge presence, notice toggle) via component tests; CafeStack link changes (fanned cards and single card link to `/review/:id`; stack header still toggles).
 - **API functions:** follow the existing codebase pattern (supabase-calling functions in `api.ts` are exercised via mocks only where cheap; heavy paths verified on-device).
 - **Manual (on-device with owner):** open from all three entry points; edit fields and save; finish a draft both ways; replace and remove a photo; delete with the two-step confirm (including backing out after first tap); delete every unwanted test review as the real acceptance run.
