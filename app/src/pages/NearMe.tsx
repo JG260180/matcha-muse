@@ -49,7 +49,8 @@ export default function NearMe() {
     return <p className="px-6 py-10 text-center text-ink/60">Couldn't load your matchas — check your connection and try again.</p>;
   }
 
-  const groups = sortGroups(groupReviews(reviews, { serve, milks }, pos), pos ? sort : 'top');
+  const effectiveSort = pos ? sort : 'top';
+  const groups = sortGroups(groupReviews(reviews, { serve, milks }, pos), effectiveSort);
   const pins = groups
     .filter((g) => g.cafe.latitude != null && g.cafe.longitude != null)
     .map((g) => ({ latitude: g.cafe.latitude!, longitude: g.cafe.longitude! }));
@@ -80,15 +81,17 @@ export default function NearMe() {
         <button
           type="button"
           disabled={!pos}
+          aria-pressed={effectiveSort === 'nearest'}
           onClick={() => setSort('nearest')}
-          className={`rounded-full px-4 py-1.5 text-sm disabled:opacity-40 ${sort === 'nearest' && pos ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink'}`}
+          className={`rounded-full px-4 py-1.5 text-sm disabled:opacity-40 ${effectiveSort === 'nearest' ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink'}`}
         >
           Nearest
         </button>
         <button
           type="button"
+          aria-pressed={effectiveSort === 'top'}
           onClick={() => setSort('top')}
-          className={`rounded-full px-4 py-1.5 text-sm ${sort === 'top' || !pos ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink'}`}
+          className={`rounded-full px-4 py-1.5 text-sm ${effectiveSort === 'top' ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink'}`}
         >
           Top rated
         </button>
@@ -99,6 +102,7 @@ export default function NearMe() {
           <button
             key={s}
             type="button"
+            aria-pressed={serve === s}
             onClick={() => setServe(s)}
             className={`rounded-full px-4 py-1.5 text-sm capitalize ${serve === s ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink'}`}
           >
