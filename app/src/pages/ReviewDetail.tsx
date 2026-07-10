@@ -40,6 +40,15 @@ export default function ReviewDetail() {
   const [pendingDraft, setPendingDraft] = useState<ReviewDraft | null>(null);
 
   useEffect(() => {
+    // Router reuses this component across /review/:id navigations, so clear
+    // any edit-session state from a previous review before loading the next.
+    setReview(null);
+    setLoadFailed(false);
+    setPhotoAction({ kind: 'keep' });
+    setNewPhotoUrl(null);
+    setBusy(false);
+    setFailed(false);
+    setPendingDraft(null);
     supabase
       .from('reviews')
       .select('*, cafe:cafes(*)')
@@ -95,6 +104,8 @@ export default function ReviewDetail() {
       setReview({
         ...review,
         photo_path: newPath,
+        // overall is guaranteed non-null by ReviewForm's canSave gate; the
+        // fallback only satisfies the Review type.
         overall: draft.overall ?? review.overall,
         taste: draft.taste, sweetness: draft.sweetness, texture: draft.texture,
         temperature: draft.temperature, milk: draft.milk,
