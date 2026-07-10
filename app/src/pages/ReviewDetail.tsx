@@ -37,6 +37,7 @@ export default function ReviewDetail() {
   const [newPhotoUrl, setNewPhotoUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState<ReviewDraft | null>(null);
 
   useEffect(() => {
     supabase
@@ -85,6 +86,7 @@ export default function ReviewDetail() {
   }
 
   async function onSave(draft: ReviewDraft) {
+    setPendingDraft(draft);
     if (!review) return;
     setBusy(true);
     setFailed(false);
@@ -102,6 +104,7 @@ export default function ReviewDetail() {
       });
       setEditing(false);
       resetEdit();
+      setPendingDraft(null);
     } catch {
       setFailed(true);
     } finally {
@@ -111,6 +114,7 @@ export default function ReviewDetail() {
 
   function onCancel() {
     resetEdit();
+    setPendingDraft(null);
     if (isDraft) navigate('/');
     else setEditing(false);
   }
@@ -185,7 +189,7 @@ export default function ReviewDetail() {
           ) : (
             <ReviewForm
               onSubmit={onSave}
-              initial={toDraft(review)}
+              initial={pendingDraft ?? toDraft(review)}
               submitLabel="Save changes"
               draftLabel={isDraft ? 'Keep as draft' : null}
               onCancel={onCancel}

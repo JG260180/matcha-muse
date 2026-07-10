@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ReviewDetail from './ReviewDetail';
+import { updateReview } from '../lib/api';
 import type { Cafe, Review } from '../lib/types';
 
 const maybeSingle = vi.fn();
@@ -70,5 +71,15 @@ describe('ReviewDetail', () => {
   it('shows the standard message when the review cannot be loaded', async () => {
     renderDetail(null);
     expect(await screen.findByText(/Couldn't load this matcha/)).toBeDefined();
+  });
+
+  it('keeps in-progress edits when a save fails', async () => {
+    vi.mocked(updateReview).mockRejectedValueOnce(new Error('offline'));
+    renderDetail(makeReview({ status: 'draft' }));
+    const price = (await screen.findByLabelText('Price')) as HTMLInputElement;
+    fireEvent.change(price, { target: { value: '9.99' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(await screen.findByText(/Couldn't save/)).toBeDefined();
+    expect((screen.getByLabelText('Price') as HTMLInputElement).value).toBe('9.99');
   });
 });
