@@ -48,6 +48,18 @@ Work is on branch **`build/v1`** (repo root `C:\Users\justi\OneDrive\Documents\M
 - Step 4b: implement + verify `downscalePhoto` in `app/src/lib/api.ts` WITH her present (do NOT ship blind — must confirm portrait photos stay upright on her actual iPhone). Update the pointer comment in `offlineQueue.ts` once done.
 - Step 5 commit (`chore: v1 deployed to Cloudflare Pages, iPhone acceptance run`) after acceptance passes.
 
+### v1 acceptance progress (2026-07-10)
+
+- Items 1–3 ✅ (home screen, password login, camera capture). Owner-requested additions shipped mid-checklist: photo library picker + removable-photo X (`9073423`), header tap returns to journal (`cc38efc`).
+- Item 4: first attempt failed — **iOS Settings → Privacy → Location Services → Safari Websites was set to "Never"**, so no prompt ever appeared and nearby lookup failed silently (text search worked). Fixed by setting "While Using the App". Spot-check pending next time she's near a cafe. Record this quirk for any future geolocation issue.
+- Items 5–8 pending (full save, airplane-mode sync, draft, upright photo).
+
+### "Near me" feature (post-v1) — SHIPPED to production 2026-07-10, on-device acceptance pending
+
+- Spec `docs/superpowers/specs/2026-07-09-near-me-design.md`; plan `docs/superpowers/plans/2026-07-09-near-me.md` (Tasks 1–5 done via subagent-driven development, each through spec + quality review; final whole-feature review passed with one empty-state fix `56623d3`).
+- Google Maps Static API: already enabled + already in the key's 35-API allowlist — no console changes were needed. Live-verified with pages.dev referer (200, image/png).
+- Deployed commits through `56623d3` (bundle `index-BTxNWEg-.js`). Task 6 on-device checklist (plan Task 6 Step 4) still to run with Justina; note final review's ask to eyeball single-marker map zoom.
+
 ### Task 14 playbook (the only remaining work)
 
 Follow the plan's Task 14 steps AND its amendment notes (Step 4b photo-downscale; iPhone checklist item 8 about upright photos). Sequence:
