@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Review } from '../lib/types';
 import SignedImage from '../components/SignedImage';
+import NewFab from '../components/NewFab';
 
 export default function Dashboard() {
   const [reviews, setReviews] = useState<Review[] | null>(null);
@@ -59,13 +59,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <Link
-        to="/new"
-        aria-label="New matcha review"
-        className="fixed bottom-6 right-6 flex h-16 w-16 items-center justify-center rounded-full bg-matcha-deep text-3xl text-cream"
-      >
-        +
-      </Link>
+      <NewFab />
     </div>
   );
 }
