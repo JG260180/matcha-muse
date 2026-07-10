@@ -54,7 +54,14 @@ Work is on branch **`build/v1`** (repo root `C:\Users\justi\OneDrive\Documents\M
 - Item 4: first attempt failed — **iOS Settings → Privacy → Location Services → Safari Websites was set to "Never"**, so no prompt ever appeared and nearby lookup failed silently (text search worked). Fixed by setting "While Using the App". Spot-check pending next time she's near a cafe. Record this quirk for any future geolocation issue.
 - Items 5–8 pending (full save, airplane-mode sync, draft, upright photo).
 
-### "Near me" feature (post-v1) — SHIPPED to production 2026-07-10, on-device acceptance pending
+### Review-detail feature (view/edit/delete) — SHIPPED + ACCEPTED on-device 2026-07-10
+
+- Spec `docs/superpowers/specs/2026-07-10-review-detail-design.md`; plan `docs/superpowers/plans/2026-07-10-review-detail.md`. Tasks 1–5 via subagent-driven development (two-stage reviews; fixes: ConfirmDelete auto-disarm/aria-live, api cleanup-error inspection, pendingDraft edit preservation, id-change state reset, test hardening). Final whole-feature review passed. Owner acceptance: "works perfectly".
+- **Schema amendment:** `photos` bucket delete policy was missing (Task 3 quality review caught it — cleanup silently failed forever). Owner applied it via SQL editor; recorded in `app/supabase/schema.sql`.
+- Owner-requested extras shipped en route: clipboard-copied confirmation on "Review on Google"; header links home.
+- Deferred minors on record: Google-links tap-target sizing; grid-Link display class; ConfirmDelete rearm-after-failed-delete UX.
+
+### "Near me" feature (post-v1) — SHIPPED 2026-07-10, on-device ACCEPTED (all 8 checks)
 
 - Spec `docs/superpowers/specs/2026-07-09-near-me-design.md`; plan `docs/superpowers/plans/2026-07-09-near-me.md` (Tasks 1–5 done via subagent-driven development, each through spec + quality review; final whole-feature review passed with one empty-state fix `56623d3`).
 - Google Maps Static API: already enabled + already in the key's 35-API allowlist — no console changes were needed. Live-verified with pages.dev referer (200, image/png).
