@@ -127,7 +127,9 @@ export default function NearMe() {
 
       {groups.length === 0 && (
         <p className="py-10 text-center text-ink/60">
-          No matchas match — widen the filters, or tap + to log one.
+          {reviews.length === 0
+            ? 'Your first matcha awaits — tap the + to begin.'
+            : 'No matchas match — widen the filters, or tap + to log one.'}
         </p>
       )}
 
