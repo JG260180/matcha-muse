@@ -27,8 +27,22 @@ const EMPTY: ReviewDraft = {
   price: '', occasions: [], note: '', status: 'complete',
 };
 
-export default function ReviewForm({ onSubmit }: { onSubmit: (d: ReviewDraft) => void }) {
-  const [d, setD] = useState(EMPTY);
+interface Props {
+  onSubmit: (d: ReviewDraft) => void;
+  initial?: ReviewDraft;
+  submitLabel?: string;
+  draftLabel?: string | null; // null hides the secondary button
+  onCancel?: () => void;
+}
+
+export default function ReviewForm({
+  onSubmit,
+  initial = EMPTY,
+  submitLabel = 'Save matcha',
+  draftLabel = 'Save as draft — finish details later',
+  onCancel,
+}: Props) {
+  const [d, setD] = useState(initial);
   const patch = (p: Partial<ReviewDraft>) => setD((prev) => ({ ...prev, ...p }));
   const priceTrimmed = d.price.trim();
   const priceOk = /^\d+(\.\d{1,2})?$/.test(priceTrimmed);
@@ -100,16 +114,23 @@ export default function ReviewForm({ onSubmit }: { onSubmit: (d: ReviewDraft) =>
         disabled={!canSave}
         className="w-full rounded-xl bg-matcha-deep p-4 font-medium text-cream disabled:opacity-40"
       >
-        Save matcha
+        {submitLabel}
       </button>
-      <button
-        type="button"
-        disabled={!canSave}
-        onClick={() => onSubmit({ ...d, price: priceTrimmed, status: 'draft' })}
-        className="w-full rounded-xl border border-matcha-deep p-3 text-matcha-deep disabled:opacity-40"
-      >
-        Save as draft — finish details later
-      </button>
+      {draftLabel !== null && (
+        <button
+          type="button"
+          disabled={!canSave}
+          onClick={() => onSubmit({ ...d, price: priceTrimmed, status: 'draft' })}
+          className="w-full rounded-xl border border-matcha-deep p-3 text-matcha-deep disabled:opacity-40"
+        >
+          {draftLabel}
+        </button>
+      )}
+      {onCancel && (
+        <button type="button" onClick={onCancel} className="w-full p-2 text-ink/60 underline">
+          Cancel
+        </button>
+      )}
     </form>
   );
 }
