@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { CafeGroup } from '../lib/nearMe';
 import { formatDistance } from '../lib/nearMe';
 import { directionsUrl, writeReviewUrl } from '../lib/googleLinks';
@@ -18,11 +19,13 @@ export default function CafeStack({ group, expanded, onToggle }: Props) {
   const { cafe, reviews, distanceM, avg } = group;
   const multi = reviews.length > 1;
   const latest = reviews[0];
+  const [noteCopied, setNoteCopied] = useState(false);
 
   async function copyNote() {
     if (!latest.note) return;
     try {
       await navigator.clipboard.writeText(latest.note);
+      setNoteCopied(true);
     } catch {
       // Clipboard can fail (permissions); the link still opens — non-fatal.
     }
@@ -85,6 +88,12 @@ export default function CafeStack({ group, expanded, onToggle }: Props) {
               Review on Google
             </a>
           </div>
+        )}
+
+        {noteCopied && (
+          <p role="status" className="border-t border-sand bg-matcha-mist px-3 py-2 text-xs text-matcha-deep">
+            Your note is copied — paste it into the Google review.
+          </p>
         )}
       </div>
 

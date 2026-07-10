@@ -98,7 +98,7 @@ describe('CafeStack', () => {
       fireEvent.click(link);
     }
 
-    it('copies the most recent review note to the clipboard', () => {
+    it('copies the most recent review note to the clipboard and says so', async () => {
       const group = makeGroup([
         makeReview({ note: 'lovely foam' }), // reviews[0] = most recent
         makeReview({ note: 'older note', drank_at: '2026-06-01T10:00:00Z' }),
@@ -106,12 +106,14 @@ describe('CafeStack', () => {
       render(<CafeStack group={group} expanded={false} onToggle={() => {}} />);
       clickReviewLink();
       expect(writeText).toHaveBeenCalledWith('lovely foam');
+      expect(await screen.findByText(/note is copied/)).toBeDefined();
     });
 
     it('does not touch the clipboard when the note is null', () => {
       render(<CafeStack group={makeGroup([makeReview({ note: null })])} expanded={false} onToggle={() => {}} />);
       clickReviewLink();
       expect(writeText).not.toHaveBeenCalled();
+      expect(screen.queryByText(/note is copied/)).toBeNull();
     });
   });
 });
