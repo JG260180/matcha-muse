@@ -1,0 +1,74 @@
+import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import ReviewDetail from './ReviewDetail';
+import type { Cafe, Review } from '../lib/types';
+
+const maybeSingle = vi.fn();
+vi.mock('../lib/supabase', () => ({
+  supabase: {
+    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: () => maybeSingle() }) }) }),
+  },
+}));
+vi.mock('../lib/api', () => ({
+  updateReview: vi.fn(),
+  deleteReview: vi.fn(),
+}));
+vi.mock('../components/SignedImage', () => ({
+  default: ({ alt }: { alt: string }) => <div role="img" aria-label={alt} />,
+}));
+
+const cafe: Cafe = {
+  id: 'c1', name: 'Cafe A', address: '1 King William St', suburb: null,
+  latitude: -34.9285, longitude: 138.6007, google_place_id: 'place-a',
+};
+
+function makeReview(over: Partial<Review>): Review {
+  return {
+    id: 'r1', cafe_id: 'c1', photo_path: null, drank_at: '2026-06-20T10:00:00Z',
+    overall: 4, taste: null, sweetness: null, texture: null,
+    temperature: 'iced', milk: 'oat', drink_style: null, size: null,
+    price: 6.5, occasions: [], note: 'silky', status: 'complete', cafe,
+    ...over,
+  };
+}
+
+function renderDetail(review: Review | null) {
+  maybeSingle.mockResolvedValue({ data: review, error: null });
+  render(
+    <MemoryRouter initialEntries={['/review/r1']}>
+      <Routes>
+        <Route path="/review/:id" element={<ReviewDetail />} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
+
+describe('ReviewDetail', () => {
+  it('opens a completed review in view mode with Edit and Delete', async () => {
+    renderDetail(makeReview({}));
+    expect(await screen.findByRole('button', { name: 'Edit' })).toBeDefined();
+    expect(screen.getByText('Cafe A')).toBeDefined();
+    expect(screen.getByText(/silky/)).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Delete this matcha' })).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
+  });
+
+  it('switches to a pre-filled form when Edit is tapped', async () => {
+    renderDetail(makeReview({}));
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    expect((screen.getByLabelText('Price') as HTMLInputElement).value).toBe('6.5');
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDefined();
+    expect(screen.queryByRole('button', { name: /Keep as draft/ })).toBeNull(); // completed → no draft button
+  });
+
+  it('opens a draft directly in edit mode with Keep as draft', async () => {
+    renderDetail(makeReview({ status: 'draft' }));
+    expect(await screen.findByRole('button', { name: 'Save changes' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Keep as draft' })).toBeDefined();
+  });
+
+  it('shows the standard message when the review cannot be loaded', async () => {
+    renderDetail(null);
+    expect(await screen.findByText(/Couldn't load this matcha/)).toBeDefined();
+  });
+});

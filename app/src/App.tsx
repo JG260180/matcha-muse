@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import NewReview from './pages/NewReview';
 import NearMe from './pages/NearMe';
+import ReviewDetail from './pages/ReviewDetail';
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/new" element={<NewReview />} />
           <Route path="/near" element={<NearMe />} />
+          <Route path="/review/:id" element={<ReviewDetail />} />
         </Routes>
       </div>
     </BrowserRouter>
