@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import type { CafeChoice } from '../components/CafePicker';
 import type { ReviewDraft } from '../components/ReviewForm';
 import { enqueue, blobToBase64, base64ToBlob, type QueuedReview } from './offlineQueue';
+import type { Review } from './types';
 
 export async function ensureCafe(choice: CafeChoice): Promise<string> {
   if (choice.kind === 'candidate') {
@@ -124,4 +125,73 @@ export async function saveReviewOrQueue(
 export async function submitQueued(item: QueuedReview): Promise<void> {
   const photo = item.photoBase64 ? await base64ToBlob(item.photoBase64) : null;
   await saveReview(item.choice, item.draft, photo, new Date(item.drankAt));
+}
+
+export type PhotoAction =
+  | { kind: 'keep' }
+  | { kind: 'replace'; blob: Blob }
+  | { kind: 'remove' };
+
+// Applies an edit to an existing review. Returns the review's final photo_path.
+// Old-photo cleanup is best-effort: an orphaned file is accepted; a failed
+// cleanup must never fail the save (same stance as v1's upload-before-insert).
+export async function updateReview(
+  review: Review,
+  draft: ReviewDraft,
+  photo: PhotoAction = { kind: 'keep' }
+): Promise<string | null> {
+  let photoPath = review.photo_path;
+  if (photo.kind === 'replace') {
+    const small = await downscalePhoto(photo.blob);
+    const newPath = `reviews/${crypto.randomUUID()}.jpg`;
+    const { error } = await supabase.storage.from('photos').upload(newPath, small);
+    if (error) throw error;
+    photoPath = newPath;
+  } else if (photo.kind === 'remove') {
+    photoPath = null;
+  }
+
+  const { error } = await supabase
+    .from('reviews')
+    .update({
+      photo_path: photoPath,
+      overall: draft.overall,
+      taste: draft.taste,
+      sweetness: draft.sweetness,
+      texture: draft.texture,
+      temperature: draft.temperature,
+      milk: draft.milk,
+      drink_style: draft.drink_style,
+      size: draft.size,
+      price: Number(draft.price),
+      occasions: draft.occasions,
+      note: draft.note || null,
+      status: draft.status,
+    })
+    .eq('id', review.id);
+  if (error) throw error;
+
+  if (photo.kind !== 'keep' && review.photo_path) {
+    try {
+      await supabase.storage.from('photos').remove([review.photo_path]);
+    } catch {
+      // orphan accepted
+    }
+  }
+
+  return photoPath;
+}
+
+// Best-effort photo removal first, then the row. Row-delete failure surfaces
+// to the caller; photo cleanup failure is an accepted orphan.
+export async function deleteReview(review: Review): Promise<void> {
+  if (review.photo_path) {
+    try {
+      await supabase.storage.from('photos').remove([review.photo_path]);
+    } catch {
+      // orphan accepted
+    }
+  }
+  const { error } = await supabase.from('reviews').delete().eq('id', review.id);
+  if (error) throw error;
 }
