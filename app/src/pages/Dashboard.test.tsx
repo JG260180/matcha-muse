@@ -52,13 +52,22 @@ describe('Dashboard review links and drafts filter', () => {
     expect(await screen.findByText('Draft')).toBeDefined();
   });
 
+  it('does not badge completed cards', async () => {
+    const r = makeReview({});
+    renderDashboard([r]);
+    await screen.findAllByRole('link');
+    expect(screen.queryByText('Draft')).toBeNull();
+  });
+
   it('toggles a drafts-only filter via the notice', async () => {
     const complete = makeReview({});
     const draft = makeReview({ status: 'draft' });
     renderDashboard([complete, draft]);
 
     const notice = await screen.findByRole('button', { name: /draft.*waiting/i });
+    expect(notice.getAttribute('aria-pressed')).toBe('false');
     fireEvent.click(notice);
+    expect(notice.getAttribute('aria-pressed')).toBe('true');
     // Only the draft card remains (1 review link + the + FAB link)
     const reviewLinks = screen.getAllByRole('link')
       .filter((l) => l.getAttribute('href')?.startsWith('/review/'));
