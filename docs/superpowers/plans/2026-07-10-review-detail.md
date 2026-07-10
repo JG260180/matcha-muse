@@ -4,7 +4,7 @@
 
 **Goal:** Every logged matcha opens at `/review/:id` — view mode first, explicit Edit button (drafts open straight into edit), full-field editing incl. photo replace/remove, two-step delete, and a drafts filter on the Journal.
 
-**Architecture:** One new page (`ReviewDetail.tsx`) owning view/edit mode state; `ReviewForm` gains an `initial` prop + configurable buttons so the same form serves logging and editing; two new API functions (`updateReview`, `deleteReview`) in `api.ts`; a small reusable `ConfirmDelete` component; entry-point links added to Dashboard and CafeStack. No schema/RLS changes.
+**Architecture:** One new page (`ReviewDetail.tsx`) owning view/edit mode state; `ReviewForm` gains an `initial` prop + configurable buttons so the same form serves logging and editing; two new API functions (`updateReview`, `deleteReview`) in `api.ts`; a small reusable `ConfirmDelete` component; entry-point links added to Dashboard and CafeStack. ~~No schema/RLS changes.~~ **Amendment 2026-07-10:** Task 3's quality review found the `photos` bucket lacked a `delete` storage policy (cleanup would silently fail forever) — one policy added, applied by the owner, recorded in `app/supabase/schema.sql`.
 
 **Tech Stack:** Vite + React 19 + TypeScript + Tailwind 3, Vitest + Testing Library (globals: `describe/it/expect/vi`), Supabase JS, react-router-dom 7.
 

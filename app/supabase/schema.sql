@@ -54,3 +54,7 @@ create policy "authenticated read photos" on storage.objects
   for select to authenticated using (bucket_id = 'photos');
 create policy "authenticated upload photos" on storage.objects
   for insert to authenticated with check (bucket_id = 'photos');
+-- Added 2026-07-10 (review-detail feature): photo cleanup on edit/delete needs
+-- delete rights; without this policy every cleanup silently failed (orphans).
+create policy "authenticated can delete photos" on storage.objects
+  for delete to authenticated using (bucket_id = 'photos');

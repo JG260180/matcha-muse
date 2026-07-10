@@ -56,7 +56,7 @@ Every logged matcha becomes tappable, opening a full-screen review page at `/rev
 
 - `updateReview(id, draft, photoAction)` where photoAction is one of: keep / replace(blob) / remove. Handles downscale + upload + row update + best-effort old-photo cleanup.
 - `deleteReview(id, photoPath)` — best-effort storage remove, then row delete.
-- No RLS/schema changes; policies already restrict all of this to the owner's rows.
+- **Amendment (2026-07-10, found in Task 3 quality review):** one RLS addition WAS required — the `photos` storage bucket had no `delete` policy, so all cleanup would silently fail. Policy `"authenticated can delete photos"` applied by the owner via SQL editor (verified "Success"); recorded in `app/supabase/schema.sql`. Table policies unchanged.
 
 ## Out of scope (future)
 
