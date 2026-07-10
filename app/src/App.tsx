@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, NavLink } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { flush } from './lib/offlineQueue';
@@ -33,7 +33,9 @@ export default function App() {
     <BrowserRouter>
       <div className="min-h-screen bg-cream text-ink">
         <header className="px-6 pt-8 pb-2">
-          <h1 className="font-display text-2xl">Matcha Muse</h1>
+          <h1 className="font-display text-2xl">
+            <Link to="/">Matcha Muse</Link>
+          </h1>
           <nav className="mt-2 flex gap-2" aria-label="View">
             {[{ to: '/', label: 'Journal' }, { to: '/near', label: 'Near me' }].map((l) => (
               <NavLink
