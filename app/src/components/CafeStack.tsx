@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { CafeGroup } from '../lib/nearMe';
 import { formatDistance } from '../lib/nearMe';
 import { directionsUrl, writeReviewUrl } from '../lib/googleLinks';
@@ -67,7 +68,9 @@ export default function CafeStack({ group, expanded, onToggle }: Props) {
             {headerBody}
           </button>
         ) : (
-          headerBody
+          <Link to={`/review/${latest.id}`} className="block">
+            {headerBody}
+          </Link>
         )}
 
         {cafe.google_place_id && (
@@ -101,7 +104,11 @@ export default function CafeStack({ group, expanded, onToggle }: Props) {
       {multi && expanded && (
         <div className="mt-2 space-y-2 pl-3">
           {reviews.map((r) => (
-            <div key={r.id} className="flex gap-3 overflow-hidden rounded-xl border border-sand bg-white">
+            <Link
+              key={r.id}
+              to={`/review/${r.id}`}
+              className="flex gap-3 overflow-hidden rounded-xl border border-sand bg-white"
+            >
               <SignedImage path={r.photo_path} alt={cafe.name} className="h-20 w-20 shrink-0 object-cover" />
               <div className="py-2 pr-3">
                 <p className="text-sm">
@@ -109,7 +116,7 @@ export default function CafeStack({ group, expanded, onToggle }: Props) {
                 </p>
                 {r.note && <p className="mt-1 line-clamp-2 text-sm text-ink/60">{r.note}</p>}
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}

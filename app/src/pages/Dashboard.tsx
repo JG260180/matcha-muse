@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Review } from '../lib/types';
 import SignedImage from '../components/SignedImage';
@@ -7,6 +8,7 @@ import NewFab from '../components/NewFab';
 export default function Dashboard() {
   const [reviews, setReviews] = useState<Review[] | null>(null);
   const [fetchError, setFetchError] = useState(false);
+  const [showDraftsOnly, setShowDraftsOnly] = useState(false);
 
   useEffect(() => {
     supabase
@@ -26,6 +28,7 @@ export default function Dashboard() {
     xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(1) : '–';
   const cafeCount = new Set(reviews.map((r) => r.cafe_id).filter(Boolean)).size;
   const drafts = reviews.filter((r) => r.status === 'draft');
+  const visible = showDraftsOnly && drafts.length > 0 ? drafts : reviews;
 
   return (
     <div className="px-6 pb-24">
@@ -36,9 +39,16 @@ export default function Dashboard() {
       </div>
 
       {drafts.length > 0 && (
-        <p className="mb-3 rounded-xl bg-sand/60 p-3 text-sm text-sand-ink">
-          {drafts.length} draft{drafts.length > 1 ? 's' : ''} waiting for details.
-        </p>
+        <button
+          type="button"
+          onClick={() => setShowDraftsOnly(!showDraftsOnly)}
+          aria-pressed={showDraftsOnly}
+          className="mb-3 w-full rounded-xl bg-sand/60 p-3 text-left text-sm text-sand-ink"
+        >
+          {showDraftsOnly
+            ? 'Showing drafts only — tap to show all.'
+            : `${drafts.length} draft${drafts.length > 1 ? 's' : ''} waiting for details — tap to view.`}
+        </button>
       )}
 
       {reviews.length === 0 && (
@@ -46,16 +56,21 @@ export default function Dashboard() {
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        {reviews.map((r) => (
-          <div key={r.id} className="overflow-hidden rounded-2xl border border-sand bg-white">
-            <SignedImage path={r.photo_path} alt={r.cafe?.name ?? 'Matcha'} className="h-36 w-full object-cover" />
+        {visible.map((r) => (
+          <Link key={r.id} to={`/review/${r.id}`} className="overflow-hidden rounded-2xl border border-sand bg-white">
+            <div className="relative">
+              <SignedImage path={r.photo_path} alt={r.cafe?.name ?? 'Matcha'} className="h-36 w-full object-cover" />
+              {r.status === 'draft' && (
+                <span className="absolute left-2 top-2 rounded-full bg-sand px-2 py-0.5 text-xs text-sand-ink">Draft</span>
+              )}
+            </div>
             <div className="p-3">
               <p className="truncate font-display">{r.cafe?.name ?? 'Unknown cafe'}</p>
               <p className="text-sm text-ink/60">
                 {Number(r.overall).toFixed(1)} ★ · ${Number(r.price).toFixed(2)}
               </p>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
