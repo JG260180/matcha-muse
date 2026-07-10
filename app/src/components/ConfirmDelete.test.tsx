@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import ConfirmDelete from './ConfirmDelete';
 
 describe('ConfirmDelete', () => {
@@ -26,5 +26,20 @@ describe('ConfirmDelete', () => {
     fireEvent.click(btn);
     fireEvent.blur(btn);
     expect(screen.getByRole('button', { name: 'Delete this matcha' })).toBeDefined();
+  });
+
+  it('auto-disarms after 5 seconds', () => {
+    vi.useFakeTimers();
+    try {
+      const onDelete = vi.fn();
+      render(<ConfirmDelete onDelete={onDelete} />);
+      fireEvent.click(screen.getByRole('button'));
+      expect(screen.getByRole('button', { name: /Tap again to confirm/ })).toBeDefined();
+      act(() => { vi.advanceTimersByTime(5000); });
+      expect(screen.getByRole('button', { name: 'Delete this matcha' })).toBeDefined();
+      expect(onDelete).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
