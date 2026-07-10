@@ -66,13 +66,47 @@ export async function saveReview(
   if (error) throw error;
 }
 
+// Shrinks a photo before upload/queueing. Decodes via createImageBitmap with
+// imageOrientation: 'from-image' so iOS EXIF rotation is baked into the pixels
+// (a portrait iPhone photo must stay upright). Falls back to the original blob
+// on ANY failure — a photo must never be lost or corrupted by this step.
+export async function downscalePhoto(
+  blob: Blob,
+  maxEdge = 1600,
+  quality = 0.8
+): Promise<Blob> {
+  try {
+    const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+    const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return blob;
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+
+    const result = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', quality)
+    );
+    if (!result || result.size >= blob.size) return blob;
+    return result;
+  } catch {
+    return blob;
+  }
+}
+
 export async function saveReviewOrQueue(
   choice: CafeChoice,
   draft: ReviewDraft,
   photo: Blob | null
 ): Promise<'saved' | 'queued'> {
+  const upload = photo ? await downscalePhoto(photo) : null;
   try {
-    await saveReview(choice, draft, photo);
+    await saveReview(choice, draft, upload);
     return 'saved';
   } catch (e) {
     const isNetwork = e instanceof TypeError || !navigator.onLine;
@@ -80,7 +114,7 @@ export async function saveReviewOrQueue(
     await enqueue({
       choice,
       draft,
-      photoBase64: photo ? await blobToBase64(photo) : null,
+      photoBase64: upload ? await blobToBase64(upload) : null,
       drankAt: new Date().toISOString(),
     });
     return 'queued';
