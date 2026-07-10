@@ -29,6 +29,8 @@ const EMPTY: ReviewDraft = {
 
 interface Props {
   onSubmit: (d: ReviewDraft) => void;
+  /** Read once at mount (like an input's defaultValue) — later prop changes
+   *  don't reset the form. Remount with a `key` if a reset is ever needed. */
   initial?: ReviewDraft;
   submitLabel?: string;
   draftLabel?: string | null; // null hides the secondary button
