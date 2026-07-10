@@ -12,6 +12,8 @@ Execution uses **superpowers:subagent-driven-development**: one fresh implemente
 
 Work is on branch **`build/v1`** (repo root `C:\Users\justi\OneDrive\Documents\MatchaMuse`, `main` holds only docs). App lives in `app/` (Vite + React 19 + TS + Tailwind 3). When v1 is complete: final whole-implementation code review, then superpowers:finishing-a-development-branch (merge build/v1 → main; no remote exists).
 
+> **2026-07-10 wrap-up:** build/v1 merged to `main` (fast-forward) and deleted; all work now on `main`. Private GitHub remote exists: `https://github.com/JG260180/matcha-muse` (origin; GCM browser auth on this machine). Future feature branches should fork from `main` and push there. v1 + Near me + review-detail are ALL shipped, on-device accepted, and backed up. Parked ideas: interactive Google map "once we scale", multi-user accounts, OTP login revisit, Google-links tap-target sizing, storage-orphan sweep.
+
 ## Task status (plan Task numbers) — updated 2026-07-08, overnight run complete
 
 **Tasks 1–13 ALL DONE, each through both reviews + any fix. Only Task 14 (deploy, human-assisted) remains.** A final whole-implementation review passed: no critical/blocking issues; end-to-end data flow, offline round-trip (drankAt preserved, flush concurrency), and RLS-vs-client-insert all verified coherent. Verdict: **ready for deployment.** State: 20 source files, **12 tests passing**, `tsc -b --noEmit` clean, `npm run build` clean. Google Places key done + live-verified. Only Task 14 is left.
