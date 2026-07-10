@@ -172,11 +172,10 @@ export async function updateReview(
   if (error) throw error;
 
   if (photo.kind !== 'keep' && review.photo_path) {
-    try {
-      await supabase.storage.from('photos').remove([review.photo_path]);
-    } catch {
-      // orphan accepted
-    }
+    const { error: cleanupError } = await supabase.storage.from('photos').remove([review.photo_path]);
+    // Orphan accepted — cleanup failure must never fail the operation, but
+    // surface it in the console so storage-policy problems are discoverable.
+    if (cleanupError) console.warn('photo cleanup failed:', cleanupError.message);
   }
 
   return photoPath;
@@ -186,11 +185,10 @@ export async function updateReview(
 // to the caller; photo cleanup failure is an accepted orphan.
 export async function deleteReview(review: Review): Promise<void> {
   if (review.photo_path) {
-    try {
-      await supabase.storage.from('photos').remove([review.photo_path]);
-    } catch {
-      // orphan accepted
-    }
+    const { error: cleanupError } = await supabase.storage.from('photos').remove([review.photo_path]);
+    // Orphan accepted — cleanup failure must never fail the operation, but
+    // surface it in the console so storage-policy problems are discoverable.
+    if (cleanupError) console.warn('photo cleanup failed:', cleanupError.message);
   }
   const { error } = await supabase.from('reviews').delete().eq('id', review.id);
   if (error) throw error;
