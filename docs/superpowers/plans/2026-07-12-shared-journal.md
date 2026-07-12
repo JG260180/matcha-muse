@@ -16,6 +16,13 @@
 > not a guarantee); all writes come from the option constants; reads tolerate unknown
 > keys via label lookup. Revisit only if quiz keys ever get written from anywhere else.
 
+> **Amendment (2026-07-12, final review):** (1) Critical fix `cbe4b8f`: ReviewDetail now
+> gates Edit/Delete behind `review.user_id === ownId` — required once reviews became
+> shared-readable, since RLS silently no-ops non-owner row writes while storage cleanup
+> would still have deleted the owner's photo. (2) Spec's "usual order" listed milk +
+> serve lean + drink style; drink style intentionally trimmed (nearly every entry is a
+> latte — little signal). Stats show milk + hot/iced lean only.
+
 **Branch:** all work on `feature/shared-journal`, forked from `main`. Owner is non-technical: human steps (SQL, acceptance) must be guided click-by-click, never ask her to run commands.
 
 **Conventions (match existing code):**
