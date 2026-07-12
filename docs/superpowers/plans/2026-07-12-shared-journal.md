@@ -10,6 +10,12 @@
 
 **Spec:** `docs/superpowers/specs/2026-07-12-shared-journal-design.md` (approved by owner 2026-07-12).
 
+> **Amendment (2026-07-12, Task 4 quality review):** reviewer suggested typing `TasteQuiz`
+> fields as literal unions derived from the option constants. Decision: keep `string`.
+> Quiz values round-trip through a jsonb column (runtime data — a union would be a cast,
+> not a guarantee); all writes come from the option constants; reads tolerate unknown
+> keys via label lookup. Revisit only if quiz keys ever get written from anywhere else.
+
 **Branch:** all work on `feature/shared-journal`, forked from `main`. Owner is non-technical: human steps (SQL, acceptance) must be guided click-by-click, never ask her to run commands.
 
 **Conventions (match existing code):**
