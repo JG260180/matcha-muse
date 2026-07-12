@@ -6,6 +6,7 @@ import { OCCASIONS, type Review } from '../lib/types';
 import ReviewForm, { type ReviewDraft } from '../components/ReviewForm';
 import SignedImage from '../components/SignedImage';
 import ConfirmDelete from '../components/ConfirmDelete';
+import BackToJournal from '../components/BackToJournal';
 
 function toDraft(r: Review): ReviewDraft {
   const num = (x: number | null) => (x == null ? null : Number(x));
@@ -145,6 +146,7 @@ export default function ReviewDetail() {
 
   return (
     <div className="pb-10 pt-2">
+      <BackToJournal />
       <div className="px-6 pb-4">
         {editing ? (
           photoAction.kind === 'keep' && review.photo_path ? (

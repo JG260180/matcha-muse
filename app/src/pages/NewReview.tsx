@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import CafePicker, { type CafeChoice } from '../components/CafePicker';
 import ReviewForm, { type ReviewDraft } from '../components/ReviewForm';
+import BackToJournal from '../components/BackToJournal';
 import { saveReviewOrQueue } from '../lib/api';
 
 export default function NewReview() {
@@ -59,6 +60,7 @@ export default function NewReview() {
 
   return (
     <div className="pb-6 pt-2">
+      <BackToJournal />
       <div className="px-6 pb-4">
         {photoUrl ? (
           <div className="relative">
