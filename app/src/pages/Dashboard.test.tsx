@@ -147,4 +147,45 @@ describe('Dashboard review links and drafts filter', () => {
     const link = await screen.findByRole('link', { name: /^reviewers$/i });
     expect(link.getAttribute('href')).toBe('/reviewers');
   });
+
+  it('resets the drafts-only toggle when switching reviewer', async () => {
+    const myDraft = makeReview({ status: 'draft' });
+    const myComplete = makeReview({});
+    const theirs = makeReview({ user_id: 'u2' });
+    renderDashboard([myDraft, myComplete, theirs], [justina, sam]);
+
+    // Turn drafts-only on
+    const notice = await screen.findByRole('button', { name: /draft.*waiting/i });
+    fireEvent.click(notice);
+    expect(
+      screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'))
+    ).toHaveLength(1);
+
+    // Switching reviewer clears the toggle: all of Sam's cards show
+    fireEvent.click(screen.getByRole('button', { name: 'Sam Lee' }));
+    const samCards = screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'));
+    expect(samCards).toHaveLength(1);
+    expect(samCards[0].getAttribute('href')).toBe(`/review/${theirs.id}`);
+
+    // Back to All: every card visible — drafts-only did not silently reassert
+    fireEvent.click(screen.getByRole('button', { name: 'All' }));
+    expect(
+      screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'))
+    ).toHaveLength(3);
+  });
+
+  it('still renders the journal when the profiles fetch fails', async () => {
+    const r = makeReview({});
+    order.mockResolvedValue({ data: [r], error: null });
+    profilesSelect.mockResolvedValue({ data: null, error: { message: 'boom' } });
+    render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>
+    );
+    const card = (await screen.findAllByRole('link'))
+      .find((l) => l.getAttribute('href') === `/review/${r.id}`);
+    expect(card).toBeDefined();
+    expect(screen.queryByRole('link', { name: /profile/i })).toBeNull();
+  });
 });

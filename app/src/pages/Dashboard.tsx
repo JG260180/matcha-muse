@@ -52,14 +52,14 @@ export default function Dashboard() {
       {reviewerIds.length >= 2 && (
         <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Reviewer">
           <button
-            type="button" aria-pressed={reviewer === 'all'} onClick={() => setReviewer('all')}
+            type="button" aria-pressed={reviewer === 'all'} onClick={() => { setReviewer('all'); setShowDraftsOnly(false); }}
             className={`rounded-full px-4 py-1.5 text-sm ${reviewer === 'all' ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink'}`}
           >
             All
           </button>
           {reviewerIds.map((id) => (
             <button
-              key={id} type="button" aria-pressed={reviewer === id} onClick={() => setReviewer(id)}
+              key={id} type="button" aria-pressed={reviewer === id} onClick={() => { setReviewer(id); setShowDraftsOnly(false); }}
               className={`rounded-full px-4 py-1.5 text-sm ${reviewer === id ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink'}`}
             >
               {profileById.get(id)!.display_name}
