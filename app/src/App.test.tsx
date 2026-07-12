@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import App from './App';
 import type { Profile } from './lib/types';
 
@@ -36,5 +36,14 @@ describe('first-sign-in profile gate', () => {
     fetchOwnProfile.mockRejectedValue(new Error('network'));
     render(<App />);
     expect(await screen.findByRole('button', { name: /try again/i })).toBeDefined();
+  });
+
+  it('retries the lookup and shows the app when Try again succeeds', async () => {
+    const p: Profile = { id: 'u1', display_name: 'Justina', about_me: null, avatar_path: null, quiz: {} };
+    fetchOwnProfile.mockReset();
+    fetchOwnProfile.mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce(p);
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: /try again/i }));
+    expect(await screen.findByText('JOURNAL-PAGE')).toBeDefined();
   });
 });

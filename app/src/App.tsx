@@ -31,6 +31,7 @@ export default function App() {
   useEffect(() => {
     if (!session) return;
     let cancelled = false;
+    setProfile(undefined);
     setProfileError(false);
     fetchOwnProfile()
       .then((p) => { if (!cancelled) setProfile(p); })

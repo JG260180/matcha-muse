@@ -3,14 +3,25 @@ import ProfileForm from './ProfileForm';
 import type { Profile } from '../lib/types';
 
 const saveProfile = vi.fn();
+const uploadAvatar = vi.fn();
 vi.mock('../lib/profile', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/profile')>()),
   saveProfile: (...args: unknown[]) => saveProfile(...args),
-  uploadAvatar: vi.fn(),
+  uploadAvatar: (...args: unknown[]) => uploadAvatar(...args),
 }));
 vi.mock('../lib/supabase', () => ({
-  supabase: { storage: { from: () => ({ remove: vi.fn().mockResolvedValue({ error: null }), createSignedUrl: vi.fn().mockResolvedValue({ data: null }) }) } },
+  supabase: {
+    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } }) },
+    storage: { from: () => ({ remove: vi.fn().mockResolvedValue({ error: null }), createSignedUrl: vi.fn().mockResolvedValue({ data: null }) }) },
+  },
 }));
+
+// jsdom has no object-URL support; ProfileForm's photo preview needs both.
+// Stubbed file-wide (not per-test) so effect cleanup on unmount stays safe.
+vi.stubGlobal('URL', Object.assign(
+  class extends URL {},
+  { createObjectURL: vi.fn(() => 'blob:preview'), revokeObjectURL: vi.fn() },
+));
 
 function fillRequired() {
   fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'Justina Gardiner' } });
@@ -47,5 +58,28 @@ describe('ProfileForm', () => {
         quiz: { sweetness: 'lightly_sweet', milk: 'oat', adventurousness: 'sometimes', frequency: 'weekly', priority: 'taste' },
       })
     );
+  });
+
+  it('shows the save-failure message and re-enables save when saving fails', async () => {
+    saveProfile.mockClear();
+    saveProfile.mockRejectedValueOnce(new Error('network'));
+    render(<ProfileForm initial={null} onSaved={vi.fn()} />);
+    fillRequired();
+    const save = screen.getByRole('button', { name: /save/i });
+    fireEvent.click(save);
+    expect(await screen.findByText("Couldn't save. Check your connection and try again.")).toBeDefined();
+    expect(save.hasAttribute('disabled')).toBe(false);
+  });
+
+  it('shows the photo-failure message and does not save when the upload fails', async () => {
+    saveProfile.mockClear();
+    uploadAvatar.mockRejectedValueOnce(new Error('storage down'));
+    render(<ProfileForm initial={null} onSaved={vi.fn()} />);
+    fillRequired();
+    const file = new File(['x'], 'me.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText(/add a photo/i), { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+    expect(await screen.findByText(/Your photo didn't upload/)).toBeDefined();
+    expect(saveProfile).not.toHaveBeenCalled();
   });
 });
