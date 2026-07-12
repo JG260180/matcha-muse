@@ -4,20 +4,39 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { flush } from './lib/offlineQueue';
 import { submitQueued } from './lib/api';
+import { fetchOwnProfile } from './lib/profile';
+import type { Profile } from './lib/types';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import NewReview from './pages/NewReview';
 import NearMe from './pages/NearMe';
 import ReviewDetail from './pages/ReviewDetail';
+import Welcome from './pages/Welcome';
+import Reviewers from './pages/Reviewers';
+import ReviewerProfile from './pages/ReviewerProfile';
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  // undefined = loading, null = no profile yet (gate), Profile = ready
+  const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
+  const [profileError, setProfileError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    setProfileError(false);
+    fetchOwnProfile()
+      .then((p) => { if (!cancelled) setProfile(p); })
+      .catch(() => { if (!cancelled) setProfileError(true); });
+    return () => { cancelled = true; };
+  }, [session, attempt]);
 
   useEffect(() => {
     if (!session) return;
@@ -29,6 +48,22 @@ export default function App() {
 
   if (session === undefined) return null;
   if (!session) return <Login />;
+  if (profileError) {
+    return (
+      <div className="min-h-screen bg-cream px-6 py-16 text-center text-ink">
+        <p className="text-ink/60">Couldn't load your profile — check your connection.</p>
+        <button
+          type="button"
+          onClick={() => { setProfile(undefined); setAttempt((a) => a + 1); }}
+          className="mt-4 rounded-xl bg-matcha-deep px-5 py-2.5 text-cream"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+  if (profile === undefined) return null;
+  if (profile === null) return <Welcome onSaved={setProfile} />;
 
   return (
     <BrowserRouter>
@@ -57,6 +92,8 @@ export default function App() {
           <Route path="/new" element={<NewReview />} />
           <Route path="/near" element={<NearMe />} />
           <Route path="/review/:id" element={<ReviewDetail />} />
+          <Route path="/reviewers" element={<Reviewers />} />
+          <Route path="/reviewer/:id" element={<ReviewerProfile />} />
         </Routes>
       </div>
     </BrowserRouter>
