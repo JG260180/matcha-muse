@@ -27,6 +27,7 @@ export interface Cafe {
 
 export interface Review {
   id: string;
+  user_id: string;
   cafe_id: string | null;
   photo_path: string | null;
   drank_at: string;
@@ -43,6 +44,7 @@ export interface Review {
   note: string | null;
   status: 'complete' | 'draft';
   cafe?: Cafe;
+  profile?: Profile; // joined client-side by user_id
 }
 
 export interface CafeCandidate {
@@ -51,4 +53,48 @@ export interface CafeCandidate {
   placeId: string;
   latitude: number;
   longitude: number;
+}
+
+export const SWEETNESS_PREFS = [
+  { key: 'purist', label: 'Purist — no sweetener' },
+  { key: 'lightly_sweet', label: 'Lightly sweet' },
+  { key: 'sweet_tooth', label: 'Sweet tooth' },
+] as const;
+export const ADVENTUROUSNESS = [
+  { key: 'usual', label: 'I stick to my usual' },
+  { key: 'sometimes', label: "I'll branch out sometimes" },
+  { key: 'anything', label: "I'll try anything on the menu" },
+] as const;
+export const FREQUENCY = [
+  { key: 'daily', label: 'Daily ritual' },
+  { key: 'weekly', label: 'Weekly treat' },
+  { key: 'occasional', label: 'Special occasions' },
+] as const;
+export const PRIORITIES = [
+  { key: 'taste', label: 'Taste' },
+  { key: 'texture', label: 'Texture' },
+  { key: 'colour', label: 'Colour' },
+  { key: 'intensity', label: 'Intensity of matcha taste' },
+  { key: 'vibe', label: 'Vibe of the cafe' },
+  { key: 'value', label: 'Value for money' },
+] as const;
+export const MILK_OPTIONS = MILKS.map((m) => ({
+  key: m,
+  label: m.charAt(0).toUpperCase() + m.slice(1),
+}));
+
+export interface TasteQuiz {
+  sweetness: string;
+  milk: string;
+  adventurousness: string;
+  frequency: string;
+  priority: string;
+}
+
+export interface Profile {
+  id: string;
+  display_name: string;
+  about_me: string | null;
+  avatar_path: string | null;
+  quiz: Partial<TasteQuiz>;
 }

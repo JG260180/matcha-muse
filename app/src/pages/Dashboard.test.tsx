@@ -21,6 +21,7 @@ const cafe: Cafe = {
 function makeReview(over: Partial<Review>): Review {
   return {
     id: Math.random().toString(36).slice(2),
+    user_id: 'u1',
     cafe_id: 'c1', photo_path: null, drank_at: '2026-06-20T10:00:00Z',
     overall: 4, taste: null, sweetness: null, texture: null,
     temperature: null, milk: null, drink_style: null, size: null,

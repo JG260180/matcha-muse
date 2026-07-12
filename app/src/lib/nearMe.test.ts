@@ -46,6 +46,7 @@ function makeReview(over: Partial<Review> & { cafe: Cafe }): Review {
   seq += 1;
   return {
     id: `r${seq}`,
+    user_id: 'u1',
     cafe_id: over.cafe.id,
     photo_path: null,
     drank_at: `2026-06-${String((seq % 27) + 1).padStart(2, '0')}T10:00:00Z`,
