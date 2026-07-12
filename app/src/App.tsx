@@ -28,8 +28,12 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  // Keyed on the user id, not the session object: Supabase replaces the
+  // session object on every token refresh, and that must not re-run the gate.
+  const userId = session?.user.id;
+
   useEffect(() => {
-    if (!session) return;
+    if (!userId) return;
     let cancelled = false;
     setProfile(undefined);
     setProfileError(false);
@@ -37,7 +41,7 @@ export default function App() {
       .then((p) => { if (!cancelled) setProfile(p); })
       .catch(() => { if (!cancelled) setProfileError(true); });
     return () => { cancelled = true; };
-  }, [session, attempt]);
+  }, [userId, attempt]);
 
   useEffect(() => {
     if (!session) return;

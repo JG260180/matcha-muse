@@ -1,14 +1,18 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import App from './App';
 import type { Profile } from './lib/types';
 
 const fetchOwnProfile = vi.fn();
+let authCallback: ((event: string, s: unknown) => void) | undefined;
 vi.mock('./lib/profile', () => ({ fetchOwnProfile: () => fetchOwnProfile() }));
 vi.mock('./lib/supabase', () => ({
   supabase: {
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: { user: { id: 'u1' } } } }),
-      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+      onAuthStateChange: vi.fn((cb: (event: string, s: unknown) => void) => {
+        authCallback = cb;
+        return { data: { subscription: { unsubscribe: vi.fn() } } };
+      }),
     },
   },
 }));
@@ -45,5 +49,18 @@ describe('first-sign-in profile gate', () => {
     render(<App />);
     fireEvent.click(await screen.findByRole('button', { name: /try again/i }));
     expect(await screen.findByText('JOURNAL-PAGE')).toBeDefined();
+  });
+
+  it('keeps the app mounted when a token refresh delivers a new session object', async () => {
+    const p: Profile = { id: 'u1', display_name: 'Justina', about_me: null, avatar_path: null, quiz: {} };
+    fetchOwnProfile.mockReset();
+    fetchOwnProfile.mockResolvedValue(p);
+    render(<App />);
+    expect(await screen.findByText('JOURNAL-PAGE')).toBeDefined();
+    const callsBefore = fetchOwnProfile.mock.calls.length;
+    // Supabase fires TOKEN_REFRESHED with a NEW session object for the SAME user.
+    act(() => authCallback?.('TOKEN_REFRESHED', { user: { id: 'u1' } }));
+    expect(screen.getByText('JOURNAL-PAGE')).toBeDefined();
+    expect(fetchOwnProfile.mock.calls.length).toBe(callsBefore);
   });
 });
