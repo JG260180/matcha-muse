@@ -1,12 +1,16 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Dashboard from './Dashboard';
-import type { Cafe, Review } from '../lib/types';
+import type { Cafe, Profile, Review } from '../lib/types';
 
 const order = vi.fn();
+const profilesSelect = vi.fn();
 vi.mock('../lib/supabase', () => ({
   supabase: {
-    from: () => ({ select: () => ({ order: () => order() }) }),
+    from: (table: string) =>
+      table === 'profiles'
+        ? { select: () => profilesSelect() }
+        : { select: () => ({ order: () => order() }) },
   },
 }));
 vi.mock('../components/SignedImage', () => ({
@@ -17,6 +21,9 @@ const cafe: Cafe = {
   id: 'c1', name: 'Cafe A', address: null, suburb: null,
   latitude: null, longitude: null, google_place_id: null,
 };
+
+const justina: Profile = { id: 'u1', display_name: 'Justina Gardiner', about_me: null, avatar_path: null, quiz: {} };
+const sam: Profile = { id: 'u2', display_name: 'Sam Lee', about_me: null, avatar_path: null, quiz: {} };
 
 function makeReview(over: Partial<Review>): Review {
   return {
@@ -30,8 +37,9 @@ function makeReview(over: Partial<Review>): Review {
   };
 }
 
-function renderDashboard(reviews: Review[]) {
+function renderDashboard(reviews: Review[], profiles: Profile[] = [justina]) {
   order.mockResolvedValue({ data: reviews, error: null });
+  profilesSelect.mockResolvedValue({ data: profiles, error: null });
   render(
     <MemoryRouter>
       <Dashboard />
@@ -96,5 +104,47 @@ describe('Dashboard review links and drafts filter', () => {
     renderDashboard([makeReview({})]); // default cafe has null lat/lng/place_id
     await screen.findAllByRole('link');
     expect(screen.queryByRole('link', { name: /directions/i })).toBeNull();
+  });
+
+  it('shows the reviewer initials badge linking to their profile', async () => {
+    const r = makeReview({});
+    renderDashboard([r]);
+    const badge = await screen.findByRole('link', { name: /justina gardiner's profile/i });
+    expect(badge.textContent).toBe('JG');
+    expect(badge.getAttribute('href')).toBe('/reviewer/u1');
+  });
+
+  it('hides reviewer chips while there is only one reviewer', async () => {
+    renderDashboard([makeReview({})]);
+    await screen.findAllByRole('link');
+    expect(screen.queryByRole('group', { name: /reviewer/i })).toBeNull();
+  });
+
+  it('filters cards and stat tiles by reviewer chip', async () => {
+    const mine = makeReview({});
+    const theirs = makeReview({ user_id: 'u2', overall: 2 });
+    renderDashboard([mine, theirs], [justina, sam]);
+
+    const chips = await screen.findByRole('group', { name: /reviewer/i });
+    expect(chips).toBeDefined();
+    // Both cards visible under "All"
+    expect(screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'))).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sam Lee' }));
+    const cards = screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'));
+    expect(cards).toHaveLength(1);
+    expect(cards[0].getAttribute('href')).toBe(`/review/${theirs.id}`);
+    // Stat tiles follow the filter: 1 matcha + 1 cafe tiles, avg 2.0
+    expect(screen.getAllByText('1')).toHaveLength(2);
+    expect(screen.getByText('2.0')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'All' }));
+    expect(screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'))).toHaveLength(2);
+  });
+
+  it('links to the reviewers list below the grid', async () => {
+    renderDashboard([makeReview({})]);
+    const link = await screen.findByRole('link', { name: /^reviewers$/i });
+    expect(link.getAttribute('href')).toBe('/reviewers');
   });
 });
