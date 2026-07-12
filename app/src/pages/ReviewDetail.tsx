@@ -32,6 +32,7 @@ export default function ReviewDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [review, setReview] = useState<Review | null>(null);
+  const [ownId, setOwnId] = useState<string | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [editing, setEditing] = useState(false);
   const [photoAction, setPhotoAction] = useState<PhotoAction>({ kind: 'keep' });
@@ -44,23 +45,23 @@ export default function ReviewDetail() {
     // Router reuses this component across /review/:id navigations, so clear
     // any edit-session state from a previous review before loading the next.
     setReview(null);
+    setOwnId(null);
     setLoadFailed(false);
     setPhotoAction({ kind: 'keep' });
     setNewPhotoUrl(null);
     setBusy(false);
     setFailed(false);
     setPendingDraft(null);
-    supabase
-      .from('reviews')
-      .select('*, cafe:cafes(*)')
-      .eq('id', id)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (error || !data) { setLoadFailed(true); return; }
-        const r = data as Review;
-        setReview(r);
-        setEditing(r.status === 'draft'); // drafts open straight into edit mode
-      });
+    Promise.all([
+      supabase.from('reviews').select('*, cafe:cafes(*)').eq('id', id).maybeSingle(),
+      supabase.auth.getUser(),
+    ]).then(([res, u]) => {
+      if (res.error || !res.data) { setLoadFailed(true); return; }
+      const r = res.data as Review;
+      setReview(r);
+      setOwnId(u.data.user?.id ?? null);
+      setEditing(r.status === 'draft'); // drafts open straight into edit mode
+    });
   }, [id]);
 
   useEffect(() => {
@@ -75,6 +76,7 @@ export default function ReviewDetail() {
   if (!review) return <p className="px-6 text-ink/60">Brewing…</p>;
 
   const isDraft = review.status === 'draft';
+  const isOwner = ownId != null && review.user_id === ownId;
 
   function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -229,15 +231,19 @@ export default function ReviewDetail() {
           )}
           {review.note && <p className="rounded-xl bg-sand/50 p-3 text-sm">{review.note}</p>}
 
-          <button
-            type="button"
-            onClick={() => { resetEdit(); setEditing(true); }}
-            className="w-full rounded-xl bg-matcha-deep p-4 font-medium text-cream"
-          >
-            Edit
-          </button>
-          {busy ? <p className="text-center text-ink/60">Deleting…</p> : <ConfirmDelete onDelete={onDelete} />}
-          {failed && <p className="pt-2 text-sm text-red-700">Couldn't delete. Check your connection and try again.</p>}
+          {isOwner && (
+            <>
+              <button
+                type="button"
+                onClick={() => { resetEdit(); setEditing(true); }}
+                className="w-full rounded-xl bg-matcha-deep p-4 font-medium text-cream"
+              >
+                Edit
+              </button>
+              {busy ? <p className="text-center text-ink/60">Deleting…</p> : <ConfirmDelete onDelete={onDelete} />}
+              {failed && <p className="pt-2 text-sm text-red-700">Couldn't delete. Check your connection and try again.</p>}
+            </>
+          )}
         </div>
       )}
     </div>

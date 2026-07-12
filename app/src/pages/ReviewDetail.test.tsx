@@ -5,8 +5,10 @@ import { updateReview } from '../lib/api';
 import type { Cafe, Review } from '../lib/types';
 
 const maybeSingle = vi.fn();
+const getUser = vi.fn();
 vi.mock('../lib/supabase', () => ({
   supabase: {
+    auth: { getUser: () => getUser() },
     from: () => ({ select: () => ({ eq: () => ({ maybeSingle: () => maybeSingle() }) }) }),
   },
 }));
@@ -33,8 +35,9 @@ function makeReview(over: Partial<Review>): Review {
   };
 }
 
-function renderDetail(review: Review | null) {
+function renderDetail(review: Review | null, ownId = 'u1') {
   maybeSingle.mockResolvedValue({ data: review, error: null });
+  getUser.mockResolvedValue({ data: { user: { id: ownId } }, error: null });
   render(
     <MemoryRouter initialEntries={['/review/r1']}>
       <Routes>
@@ -81,5 +84,18 @@ describe('ReviewDetail', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     expect(await screen.findByText(/Couldn't save/)).toBeDefined();
     expect((screen.getByLabelText('Price') as HTMLInputElement).value).toBe('9.99');
+  });
+
+  it('hides Edit and Delete on someone else\'s review', async () => {
+    renderDetail(makeReview({ user_id: 'u2' }), 'u1');
+    expect(await screen.findByText('Cafe A')).toBeDefined();
+    expect(screen.queryByRole('button', { name: /edit/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Delete this matcha' })).toBeNull();
+  });
+
+  it('shows Edit and Delete on your own review', async () => {
+    renderDetail(makeReview({}), 'u1');
+    expect(await screen.findByRole('button', { name: 'Edit' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Delete this matcha' })).toBeDefined();
   });
 });
