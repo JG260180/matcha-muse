@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import type { Review } from '../lib/types';
 import SignedImage from '../components/SignedImage';
 import NewFab from '../components/NewFab';
+import { directionsUrl } from '../lib/googleLinks';
 
 export default function Dashboard() {
   const [reviews, setReviews] = useState<Review[] | null>(null);
@@ -56,22 +57,41 @@ export default function Dashboard() {
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        {visible.map((r) => (
-          <Link key={r.id} to={`/review/${r.id}`} className="overflow-hidden rounded-2xl border border-sand bg-white">
-            <div className="relative">
-              <SignedImage path={r.photo_path} alt={r.cafe?.name ?? 'Matcha'} className="h-36 w-full object-cover" />
-              {r.status === 'draft' && (
-                <span className="absolute left-2 top-2 rounded-full bg-sand px-2 py-0.5 text-xs text-sand-ink">Draft</span>
+        {visible.map((r) => {
+          const c = r.cafe;
+          const hasDirections =
+            c && c.latitude != null && c.longitude != null && c.google_place_id != null;
+          return (
+            <div key={r.id} className="overflow-hidden rounded-2xl border border-sand bg-white">
+              <Link to={`/review/${r.id}`} className="block">
+                <div className="relative">
+                  <SignedImage path={r.photo_path} alt={c?.name ?? 'Matcha'} className="h-36 w-full object-cover" />
+                  {r.status === 'draft' && (
+                    <span className="absolute left-2 top-2 rounded-full bg-sand px-2 py-0.5 text-xs text-sand-ink">Draft</span>
+                  )}
+                </div>
+                <div className="p-3 pb-1">
+                  <p className="truncate font-display">{c?.name ?? 'Unknown cafe'}</p>
+                  <p className="text-sm text-ink/60">
+                    {Number(r.overall).toFixed(1)} ★ · ${Number(r.price).toFixed(2)}
+                  </p>
+                </div>
+              </Link>
+              {hasDirections ? (
+                <a
+                  href={directionsUrl(c.latitude!, c.longitude!, c.google_place_id!)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-11 items-center px-3 pb-1 text-sm text-matcha-deep underline"
+                >
+                  Directions ↗
+                </a>
+              ) : (
+                <div className="pb-2" />
               )}
             </div>
-            <div className="p-3">
-              <p className="truncate font-display">{r.cafe?.name ?? 'Unknown cafe'}</p>
-              <p className="text-sm text-ink/60">
-                {Number(r.overall).toFixed(1)} ★ · ${Number(r.price).toFixed(2)}
-              </p>
-            </div>
-          </Link>
-        ))}
+          );
+        })}
       </div>
 
       <NewFab />

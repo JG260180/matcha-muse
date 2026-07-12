@@ -79,4 +79,21 @@ describe('Dashboard review links and drafts filter', () => {
       screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'))
     ).toHaveLength(2);
   });
+
+  it('shows a Directions link when the cafe has location data', async () => {
+    const located = {
+      ...cafe, latitude: -34.9, longitude: 138.6, google_place_id: 'place123',
+    };
+    renderDashboard([makeReview({ cafe: located })]);
+    const link = await screen.findByRole('link', { name: /directions/i });
+    expect(link.getAttribute('href')).toContain('google.com/maps');
+    expect(link.getAttribute('href')).toContain('place123');
+    expect(link.getAttribute('target')).toBe('_blank');
+  });
+
+  it('shows no Directions link when the cafe has no location data', async () => {
+    renderDashboard([makeReview({})]); // default cafe has null lat/lng/place_id
+    await screen.findAllByRole('link');
+    expect(screen.queryByRole('link', { name: /directions/i })).toBeNull();
+  });
 });
