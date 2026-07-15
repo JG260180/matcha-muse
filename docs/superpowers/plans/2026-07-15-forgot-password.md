@@ -25,7 +25,17 @@
 
 ### Task 0: HUMAN PREREQUISITE — reset-email template (Justina + controller, in the Supabase dashboard)
 
-No code. **Blocks all later tasks.**
+No code. **Gate scope amended 2026-07-15:** this task gates the LIVE acceptance
+(Task 5 Step 2), not the code tasks — the app code is template-agnostic
+(`resetPasswordForEmail` sends whatever template is configured; `verifyOtp` redeems
+the code regardless), so Tasks 1–4 may run in parallel with this setup. Second
+amendment same day: owner chose **Gmail SMTP** (app password) over Brevo to avoid
+another email provider; same Supabase SMTP screen, host `smtp.gmail.com`, port 587,
+username = her Gmail address, password = a Google app password (requires 2-Step
+Verification on her Google account). Dashboard driving confirmed there is NO
+admin "update password" action in the current Supabase Users panel — recovery
+email is the only path, which is why this feature (not a dashboard recipe) is the fix;
+her own first use of the shipped flow doubles as setting her password.
 
 > **Amendment 2026-07-15:** the original Step 2 check ran live and template editing
 > IS blocked on the free plan ("Set up custom SMTP to edit templates"). Owner chose
