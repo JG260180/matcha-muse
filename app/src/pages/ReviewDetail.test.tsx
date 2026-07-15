@@ -19,6 +19,9 @@ vi.mock('../lib/api', () => ({
 vi.mock('../components/SignedImage', () => ({
   default: ({ alt }: { alt: string }) => <div role="img" aria-label={alt} />,
 }));
+vi.mock('../components/CafeMenu', () => ({
+  default: ({ cafeId }: { cafeId: string }) => <div data-testid="cafe-menu" data-cafe={cafeId} />,
+}));
 
 const cafe: Cafe = {
   id: 'c1', name: 'Cafe A', address: '1 King William St', suburb: null,
@@ -97,5 +100,23 @@ describe('ReviewDetail', () => {
     renderDetail(makeReview({}), 'u1');
     expect(await screen.findByRole('button', { name: 'Edit' })).toBeDefined();
     expect(screen.getByRole('button', { name: 'Delete this matcha' })).toBeDefined();
+  });
+
+  it('shows the cafe menu section in view mode', async () => {
+    renderDetail(makeReview({}));
+    await screen.findByRole('button', { name: 'Edit' });
+    expect(screen.getByTestId('cafe-menu').getAttribute('data-cafe')).toBe('c1');
+  });
+
+  it('hides the menu section while editing', async () => {
+    renderDetail(makeReview({ status: 'draft' })); // drafts open straight into edit mode
+    await screen.findByRole('button', { name: 'Save changes' });
+    expect(screen.queryByTestId('cafe-menu')).toBeNull();
+  });
+
+  it('hides the menu section when the review has no cafe', async () => {
+    renderDetail(makeReview({ cafe: undefined, cafe_id: null }));
+    await screen.findByText('Unknown cafe');
+    expect(screen.queryByTestId('cafe-menu')).toBeNull();
   });
 });

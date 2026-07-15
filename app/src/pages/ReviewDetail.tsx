@@ -7,6 +7,7 @@ import ReviewForm, { type ReviewDraft } from '../components/ReviewForm';
 import SignedImage from '../components/SignedImage';
 import ConfirmDelete from '../components/ConfirmDelete';
 import BackToJournal from '../components/BackToJournal';
+import CafeMenu from '../components/CafeMenu';
 
 function toDraft(r: Review): ReviewDraft {
   const num = (x: number | null) => (x == null ? null : Number(x));
@@ -230,6 +231,8 @@ export default function ReviewDetail() {
             </p>
           )}
           {review.note && <p className="rounded-xl bg-sand/50 p-3 text-sm">{review.note}</p>}
+
+          {review.cafe && <CafeMenu cafeId={review.cafe.id} cafeName={review.cafe.name} />}
 
           {isOwner && (
             <>
