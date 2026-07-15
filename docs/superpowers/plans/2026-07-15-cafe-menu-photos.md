@@ -741,3 +741,14 @@ Not part of this session's automated work — record as pending in HANDOFF: on h
 ## Out of scope (per spec)
 
 Captions, reordering, offline queueing of menu uploads, a dedicated cafe page.
+
+---
+
+## Amendments
+
+**2026-07-15 (found by Task 2 quality review):**
+
+1. **Removal state scoped to photo id.** `CafeMenu` originally tracked `removing`/`removeFailed` as global booleans and closed the viewer unconditionally on delete success. Reachable race: confirm a slow delete on photo A, close the viewer, open photo B — B wrongly showed "Removing…" and was force-closed when A's delete resolved. Fixed with `removingId`/`removeFailedId` (photo-id scoped) and a functional `setViewing` that closes only if the deleted photo is still the one being viewed. Regression test uses a manually-resolved delete promise.
+2. **Viewer dialog keyboard + focus support.** The full-screen viewer gained `aria-modal="true"`, `autoFocus` on the ✕ close button, Escape-to-close (window keydown listener while open), and focus return to the invoking element on close (ref captured in `openViewer`, restored by an effect when `viewing` becomes null).
+
+The inline Task 2 code block above predates these fixes; this note is the record.

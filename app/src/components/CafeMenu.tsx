@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fetchMenuPhotos, addMenuPhoto, deleteMenuPhoto, type MenuPhoto } from '../lib/menu';
 import SignedImage from './SignedImage';
 
@@ -19,8 +19,12 @@ export default function CafeMenu({ cafeId, cafeName }: Props) {
   const [viewing, setViewing] = useState<MenuPhoto | null>(null);
   const [zoomed, setZoomed] = useState(false);
   const [removeArmed, setRemoveArmed] = useState(false);
-  const [removing, setRemoving] = useState(false);
-  const [removeFailed, setRemoveFailed] = useState(false);
+  // Removal state is scoped to the photo id: the viewer can be closed and
+  // reopened on a different photo while a slow delete is still in flight,
+  // and that other photo's viewer must not inherit "Removing…"/failure state.
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [removeFailedId, setRemoveFailedId] = useState<string | null>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,6 +44,27 @@ export default function CafeMenu({ cafeId, cafeName }: Props) {
     return () => clearTimeout(t);
   }, [removeArmed]);
 
+  // Escape closes the viewer while it's open.
+  useEffect(() => {
+    if (!viewing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeViewer();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [viewing]);
+
+  // Return focus to whatever opened the viewer once it closes — covers both
+  // closeViewer and the functional close in onRemove's success path.
+  useEffect(() => {
+    if (viewing) return;
+    const el = returnFocusRef.current;
+    if (el) {
+      returnFocusRef.current = null;
+      el.focus();
+    }
+  }, [viewing]);
+
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     e.target.value = '';
@@ -57,17 +82,18 @@ export default function CafeMenu({ cafeId, cafeName }: Props) {
   }
 
   function openViewer(p: MenuPhoto) {
+    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setViewing(p);
     setZoomed(false);
     setRemoveArmed(false);
-    setRemoveFailed(false);
+    setRemoveFailedId(null);
   }
 
   function closeViewer() {
     setViewing(null);
     setZoomed(false);
     setRemoveArmed(false);
-    setRemoveFailed(false);
+    setRemoveFailedId(null);
   }
 
   async function onRemove() {
@@ -76,17 +102,20 @@ export default function CafeMenu({ cafeId, cafeName }: Props) {
       setRemoveArmed(true);
       return;
     }
-    setRemoving(true);
-    setRemoveFailed(false);
+    const target = viewing;
+    setRemovingId(target.id);
+    setRemoveFailedId(null);
     try {
-      await deleteMenuPhoto(viewing);
-      setPhotos((ps) => (ps ?? []).filter((p) => p.id !== viewing.id));
-      closeViewer();
+      await deleteMenuPhoto(target);
+      setPhotos((ps) => (ps ?? []).filter((p) => p.id !== target.id));
+      // Close only if the viewer is still on the deleted photo — the user may
+      // have closed it and opened another photo while the delete was in flight.
+      setViewing((v) => (v && v.id === target.id ? null : v));
     } catch {
-      setRemoveFailed(true);
+      setRemoveFailedId(target.id);
       setRemoveArmed(false);
     } finally {
-      setRemoving(false);
+      setRemovingId((id) => (id === target.id ? null : id));
     }
   }
 
@@ -136,10 +165,11 @@ export default function CafeMenu({ cafeId, cafeName }: Props) {
       )}
 
       {viewing && (
-        <div role="dialog" aria-label={`Menu photo — ${cafeName}`} className="fixed inset-0 z-50 flex flex-col bg-ink/95">
+        <div role="dialog" aria-modal="true" aria-label={`Menu photo — ${cafeName}`} className="fixed inset-0 z-50 flex flex-col bg-ink/95">
           <div className="flex justify-end p-3">
             <button
               type="button"
+              autoFocus
               onClick={closeViewer}
               aria-label="Close menu photo"
               className="flex h-10 w-10 items-center justify-center rounded-full bg-cream/20 text-lg leading-none text-cream"
@@ -163,7 +193,7 @@ export default function CafeMenu({ cafeId, cafeName }: Props) {
             </button>
           </div>
           <div className="p-4">
-            {removing ? (
+            {removingId === viewing.id ? (
               <p role="status" className="text-center text-cream/80">Removing…</p>
             ) : (
               <button
@@ -178,7 +208,7 @@ export default function CafeMenu({ cafeId, cafeName }: Props) {
                 {removeArmed ? "Tap again to confirm — this can't be undone" : 'Remove this photo'}
               </button>
             )}
-            {removeFailed && (
+            {removeFailedId === viewing.id && (
               <p className="pt-2 text-center text-sm text-red-300">Couldn't remove. Check your connection and try again.</p>
             )}
           </div>

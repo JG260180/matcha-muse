@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import CafeMenu from './CafeMenu';
 import type { MenuPhoto } from '../lib/menu';
 
@@ -102,6 +102,43 @@ describe('CafeMenu', () => {
     expect(screen.getByRole('dialog')).toBeDefined(); // viewer stays open
     fireEvent.click(screen.getByRole('button', { name: 'Close menu photo' }));
     expect(screen.getByRole('button', { name: 'Menu photo 1 of 1 — Cafe A' })).toBeDefined();
+  });
+
+  it('does not leak an in-flight removal into another photo viewer', async () => {
+    let resolveDelete!: () => void;
+    deleteMenuPhoto.mockImplementation(() => new Promise<void>((r) => { resolveDelete = r; }));
+    renderMenu([makePhoto({}), makePhoto({ id: 'm2', photo_path: 'menus/b.jpg' })]);
+    // Open A, arm+confirm — delete is now in flight on a slow connection.
+    fireEvent.click(await screen.findByRole('button', { name: 'Menu photo 1 of 2 — Cafe A' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove this photo' }));
+    fireEvent.click(screen.getByRole('button', { name: /Tap again to confirm/ }));
+    // Close A's viewer and open B's while the delete is still pending.
+    fireEvent.click(screen.getByRole('button', { name: 'Close menu photo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Menu photo 2 of 2 — Cafe A' }));
+    expect(screen.queryByText(/Removing/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Remove this photo' })).toBeDefined();
+    // A's delete resolves: A disappears from the row, B's viewer stays open.
+    await act(async () => { resolveDelete(); });
+    expect(screen.getByRole('dialog', { name: 'Menu photo — Cafe A' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Menu photo 1 of 1 — Cafe A' })).toBeDefined();
+  });
+
+  it('closes the viewer on Escape', async () => {
+    renderMenu([makePhoto({})]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Menu photo 1 of 1 — Cafe A' }));
+    expect(screen.getByRole('dialog')).toBeDefined();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('moves focus to the close button on open and back to the thumbnail on close', async () => {
+    renderMenu([makePhoto({})]);
+    const thumb = await screen.findByRole('button', { name: 'Menu photo 1 of 1 — Cafe A' });
+    thumb.focus();
+    fireEvent.click(thumb);
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close menu photo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close menu photo' }));
+    expect(document.activeElement).toBe(thumb);
   });
 
   it('toggles the viewer photo between fitted and natural size on tap', async () => {
