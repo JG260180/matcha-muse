@@ -79,6 +79,16 @@ Work is on branch **`build/v1`** (repo root `C:\Users\justi\OneDrive\Documents\M
 - **STILL TO DO:** (1) Justina signs in on the dev server and live-checks: add menu photo (library + camera), see it from another review at the same cafe, viewer zoom, remove with confirm, journal/Near me unchanged — assistant must NOT enter her password, ever; (2) her iPhone check (portrait menu photo stays upright); (3) final whole-feature review verdict recorded below/in session; (4) merge (after shared-journal) + deploy + add pages.dev acceptance.
 - `.claude/launch.json` added at repo root (dev-server launch config for the in-app preview browser).
 
+### Forgot password (2026-07-15) — CODE COMPLETE on `feature/forgot-password`, awaiting SMTP/template finish + live acceptance
+
+- Spec `docs/superpowers/specs/2026-07-15-forgot-password-design.md`; plan `docs/superpowers/plans/2026-07-15-forgot-password.md` (READ THE AMENDMENTS — the story changed twice). Trigger: Justina forgot her password; **the Supabase dashboard has NO admin "set password" action** (verified by driving the Users panel — only send-recovery/magic-link/ban/delete), so this feature is the only self-serve path.
+- Design: 6-digit emailed CODE, never a link — her M365 scanner consumes one-time links (v1 lesson). The reset email template must contain `{{ .Token }}` and NO `{{ .ConfirmationURL }}` (same underlying token — a scanned link kills the code too).
+- **Template editing is LOCKED on free Supabase without custom SMTP** (v1 note confirmed by screenshot). Owner chose Gmail SMTP (app password; needs Google 2-Step Verification), after declining Brevo to avoid another provider. As of session end she had SMTP working (template unlocked) and was pasting the code-only body; final "Send password recovery → code-only email arrives" test may still be pending — CHECK WITH HER.
+- Branch stacked on `feature/cafe-menu`. **Merge train: shared-journal → cafe-menu → forgot-password → main.**
+- Code: `lib/passwordReset.ts` (requestReset / confirmReset=verifyOtp-recovery-then-updateUser / isRateLimit), `components/ForgotPassword.tsx` (two-step UI, neutral no-oracle messaging, 60 s resend cooldown via single interval — per-tick setTimeout stalls under fake timers, gotcha!), Login entry. 137 tests total, tsc + build clean. Commits `d274db7` → `a4fba80` → `e0a068d` (fix round: "kitchen" copy bug, confirm-step coverage, Back disabled while busy) → `a100244`.
+- Quality-review notes on record: hung request briefly leaves no enabled controls on the code step (accepted); cross-photo… (n/a here); skipped minors: "Too many attempts" string dedupe, Send-again re-invoke assertion.
+- UI round-trip verified in the preview app (login → forgot → back). **STILL TO DO:** her template test email; live end-to-end reset with HER typing the password (assistant never touches passwords — also true of the SMTP key); her first real use of the flow doubles as setting her password (dashboard can't); then menu-feature acceptance in the same sitting; final whole-feature review verdict; merge + deploy.
+
 ### Task 14 playbook (the only remaining work)
 
 Follow the plan's Task 14 steps AND its amendment notes (Step 4b photo-downscale; iPhone checklist item 8 about upright photos). Sequence:
