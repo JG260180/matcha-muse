@@ -67,16 +67,24 @@ export default function ForgotPassword({ initialEmail, onBack }: Props) {
       await confirmReset(email, code.trim(), password);
       // Success: verifyOtp created a session; App unmounts this screen.
     } catch (err) {
+      // Leaves a trace even if the component unmounts mid-flight (accepted
+      // trade-off in the spec: verifyOtp may have created a session already).
+      console.warn('password reset confirm failed:', err);
       if (isRateLimit(err)) setError('Too many attempts — wait a bit and try again.');
       else if (err instanceof TypeError || !navigator.onLine)
-        setError("Couldn't reach the kitchen — check your connection and try again.");
+        setError("Couldn't reset your password — check your connection and try again.");
       else setError("That code didn't work — check it or send a new one.");
       setBusy(false);
     }
   }
 
   const backLink = (
-    <button type="button" onClick={onBack} className="mt-4 self-start text-sm text-ink/60 underline">
+    <button
+      type="button"
+      onClick={onBack}
+      disabled={busy}
+      className="mt-4 self-start text-sm text-ink/60 underline disabled:opacity-40"
+    >
       Back to sign in
     </button>
   );

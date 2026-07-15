@@ -84,6 +84,44 @@ describe('ForgotPassword', () => {
     expect(screen.getByLabelText('6-digit code')).toBeDefined(); // still on the code step
   });
 
+  it('stays on the code step with the rate-limit message when confirm is rate-limited', async () => {
+    requestReset.mockResolvedValue(undefined);
+    confirmReset.mockRejectedValue({ status: 429 });
+    render(<ForgotPassword initialEmail="justi@example.com" onBack={() => {}} />);
+    await sendCode();
+    fireEvent.change(screen.getByLabelText('6-digit code'), { target: { value: '123456' } });
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'brand-new-pw' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Set new password' }));
+    expect(await screen.findByText(/Too many attempts/)).toBeDefined();
+    expect(screen.getByLabelText('6-digit code')).toBeDefined(); // still on the code step
+  });
+
+  it('shows the connection message when confirm hits a network failure', async () => {
+    requestReset.mockResolvedValue(undefined);
+    confirmReset.mockRejectedValue(new TypeError('fetch failed'));
+    render(<ForgotPassword initialEmail="justi@example.com" onBack={() => {}} />);
+    await sendCode();
+    fireEvent.change(screen.getByLabelText('6-digit code'), { target: { value: '123456' } });
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'brand-new-pw' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Set new password' }));
+    expect(await screen.findByText(/Couldn't reset your password/)).toBeDefined();
+    expect(screen.getByLabelText('6-digit code')).toBeDefined(); // still on the code step
+  });
+
+  it('disables Back to sign in while a confirm is in flight', async () => {
+    requestReset.mockResolvedValue(undefined);
+    confirmReset.mockImplementation(() => new Promise(() => {}));
+    render(<ForgotPassword initialEmail="justi@example.com" onBack={() => {}} />);
+    await sendCode();
+    fireEvent.change(screen.getByLabelText('6-digit code'), { target: { value: '123456' } });
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'brand-new-pw' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Set new password' }));
+    await act(async () => {});
+    expect(
+      (screen.getByRole('button', { name: 'Back to sign in' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+
   it('disables Send again for 60 seconds after sending', async () => {
     vi.useFakeTimers();
     try {
