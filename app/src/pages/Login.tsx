@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import ForgotPassword from '../components/ForgotPassword';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [forgot, setForgot] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -15,6 +17,8 @@ export default function Login() {
     setBusy(false);
     if (error) setError("That didn't work — check the email and password and try again.");
   }
+
+  if (forgot) return <ForgotPassword initialEmail={email} onBack={() => setForgot(false)} />;
 
   return (
     <div className="flex min-h-screen flex-col justify-center bg-cream px-8 text-ink">
@@ -49,6 +53,13 @@ export default function Login() {
         </button>
         {error && <p className="text-sm text-red-700">{error}</p>}
       </form>
+      <button
+        type="button"
+        onClick={() => setForgot(true)}
+        className="mt-4 self-start text-sm text-ink/60 underline"
+      >
+        Forgot password?
+      </button>
     </div>
   );
 }
