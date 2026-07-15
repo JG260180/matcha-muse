@@ -69,6 +69,16 @@ Work is on branch **`build/v1`** (repo root `C:\Users\justi\OneDrive\Documents\M
 - Google Maps Static API: already enabled + already in the key's 35-API allowlist — no console changes were needed. Live-verified with pages.dev referer (200, image/png).
 - Deployed commits through `56623d3` (bundle `index-BTxNWEg-.js`). Task 6 on-device checklist (plan Task 6 Step 4) still to run with Justina; note final review's ask to eyeball single-marker map zoom.
 
+### Cafe menu photos (2026-07-15) — CODE COMPLETE on `feature/cafe-menu`, awaiting Justina's browser/on-device acceptance
+
+- Spec `docs/superpowers/specs/2026-07-15-cafe-menu-photos-design.md`; plan `docs/superpowers/plans/2026-07-15-cafe-menu-photos.md` (see its Amendments section). Owner-approved design: menu photos live on the review page ONLY (view mode, cafe reviews only — invisible on journal/Near me), multiple photos per cafe oldest-first, any signed-in reviewer can add/remove.
+- **Branch forked from `feature/shared-journal` (unmerged!). Merge order: shared-journal → cafe-menu → main, then deploy.**
+- **No database work was needed**: the `menu_photos` table + RLS + storage policies have existed since v1 (schema.sql) — this feature finally wired them to UI. Storage path prefix `menus/`.
+- Built via subagent-driven development, Tasks 0–3 done, each through spec + quality review. Quality review of Task 2 caught two real issues, both fixed (`747f20c`): (1) viewer-close race — removal state is now photo-id-scoped (`removingId`/`removeFailedId`), success closes via pure functional `setViewing` compare; (2) the full-screen viewer is the app's FIRST `role="dialog"` — it now has `aria-modal`, autofocus on ✕, Escape-to-close, focus return. **Reuse this dialog pattern for any future modal.** Reviewer's non-blocking notes on record: no focus trap; cross-photo delete-failure is silent (photo staying in the row is the signal); `removeArmed` still a global boolean (safe direction).
+- State: 113 tests passing (was 89), tsc + `npm run build` clean. Commits: `bf5b470` (lib) → `71a1e41` (CafeMenu) → `747f20c` (fix round) → `9f8a60a` (ReviewDetail mount).
+- **STILL TO DO:** (1) Justina signs in on the dev server and live-checks: add menu photo (library + camera), see it from another review at the same cafe, viewer zoom, remove with confirm, journal/Near me unchanged — assistant must NOT enter her password, ever; (2) her iPhone check (portrait menu photo stays upright); (3) final whole-feature review verdict recorded below/in session; (4) merge (after shared-journal) + deploy + add pages.dev acceptance.
+- `.claude/launch.json` added at repo root (dev-server launch config for the in-app preview browser).
+
 ### Task 14 playbook (the only remaining work)
 
 Follow the plan's Task 14 steps AND its amendment notes (Step 4b photo-downscale; iPhone checklist item 8 about upright photos). Sequence:
