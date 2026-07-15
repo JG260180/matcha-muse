@@ -51,8 +51,9 @@ Props: `{ cafeId: string; cafeName: string }`. Self-contained: fetches on mount
   While uploading: "Adding…" text replaces the controls. On failure: red
   "Couldn't add the photo. Check your connection and try again."
 - **Full-screen viewer:** tapping a thumbnail opens a fixed overlay (dark backdrop):
-  the photo rendered at its natural size inside an `overflow-auto` container (so fine
-  print is readable by scrolling; native pinch-zoom is a bonus where iOS allows it),
+  the photo starts fitted to the screen width; tapping the photo toggles it to natural
+  size inside an `overflow-auto` container (so fine print is readable by scrolling;
+  native pinch-zoom is a bonus where iOS allows it),
   a ✕ close button (aria-label "Close menu photo"), and a compact "Remove this photo"
   button using the two-tap arm/confirm pattern from `ConfirmDelete` (first tap arms →
   label becomes "Tap again to confirm", auto-disarms after a few seconds). Removal deletes via
