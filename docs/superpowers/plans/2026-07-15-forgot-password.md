@@ -25,11 +25,18 @@
 
 ### Task 0: HUMAN PREREQUISITE — reset-email template (Justina + controller, in the Supabase dashboard)
 
-No code. **Blocks all later tasks.** In the dashboard (project `matcha-muse`):
+No code. **Blocks all later tasks.**
 
-- [ ] **Step 1:** Authentication → Emails (under Configuration; older UI calls it "Email Templates") → **Reset Password** template.
-- [ ] **Step 2:** Confirm the Subject and Message body are editable on this (free) plan. If a paywall/custom-SMTP block appears: STOP the whole plan and report back to the controller for a redesign.
-- [ ] **Step 3:** Set Subject to `Your Matcha Muse reset code` and replace the ENTIRE message body with:
+> **Amendment 2026-07-15:** the original Step 2 check ran live and template editing
+> IS blocked on the free plan ("Set up custom SMTP to edit templates"). Owner chose
+> the free-SMTP unlock (Brevo). Steps below are the amended sequence. All steps are
+> owner-driven in the browser with the controller guiding; the assistant never
+> handles the SMTP key or any password.
+
+- [ ] **Step 1 (Brevo):** Owner creates a free Brevo account (brevo.com), confirms her email, and verifies `justina@lightspeedconsulting.com.au` as a sender (Senders & Domains → Senders).
+- [ ] **Step 2 (Brevo):** Profile → SMTP & API → SMTP tab → generate an SMTP key. Note the host `smtp-relay.brevo.com`, port `587`, and the login shown there.
+- [ ] **Step 2b (Supabase):** Authentication → Emails → **SMTP Settings** tab → enable custom SMTP: Sender email `justina@lightspeedconsulting.com.au`, Sender name `Matcha Muse`, Host `smtp-relay.brevo.com`, Port `587`, Username = the Brevo SMTP login, Password = the Brevo SMTP key (owner pastes it herself). Save.
+- [ ] **Step 3:** Authentication → Emails → Templates → **Reset Password** (now editable). Set Subject to `Your Matcha Muse reset code` and replace the ENTIRE message body with:
 
 ```html
 <h2>Reset your Matcha Muse password</h2>
@@ -40,7 +47,7 @@ No code. **Blocks all later tasks.** In the dashboard (project `matcha-muse`):
 ```
 
 - [ ] **Step 4:** Verify NO `{{ .ConfirmationURL }}` remains anywhere in the body. Save.
-- [ ] **Step 5 (live template test, no app code needed):** Authentication → Users → Justina's user → ⋯ menu → **Send password recovery**. Check her inbox: the email must show a 6-digit code and contain no link/button. This proves the template AND that her M365 scanner has nothing to consume.
+- [ ] **Step 5 (live template test, no app code needed):** Authentication → Users → Justina's user → ⋯ menu → **Send password recovery**. Check her inbox (and Junk — first Brevo sends may land there; mark as safe): the email must show a 6-digit code and contain no link/button. This proves the SMTP relay, the template, AND that her M365 scanner has nothing to consume.
 
 Acceptance: code-only email received. Record the outcome in the HANDOFF doc.
 

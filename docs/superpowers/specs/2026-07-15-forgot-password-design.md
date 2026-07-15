@@ -17,10 +17,18 @@ A standard reset-link email would fail identically. Therefore:
   Supabase "Reset Password" template's `{{ .ConfirmationURL }}` must be REMOVED.
 - This template edit is a **human prerequisite step** (Justina in the Supabase
   dashboard, assistant guiding): Authentication → Emails/Templates → Reset Password.
-  v1 notes recorded that template editing might be restricted on the free plan
-  (recorded in the context of custom SMTP for magic links) — **verify live before
-  building**. If editing is genuinely blocked, STOP and redesign; do not fall back
-  to the link flow silently.
+  **CONFIRMED BLOCKED on the free plan (live check, 2026-07-15):** the dashboard
+  shows "Set up custom SMTP to edit templates" with the body locked to the default
+  link-only email. **Owner decision (2026-07-15): unlock via free custom SMTP —
+  a Brevo free-tier account sending as justina@lightspeedconsulting.com.au.**
+  Setup (all owner-driven in the browser, assistant guiding; the assistant never
+  handles the SMTP key or any credential): Brevo account + verified sender +
+  SMTP key → Supabase Authentication → Emails → SMTP Settings (host
+  smtp-relay.brevo.com, port 587) → template becomes editable → apply the
+  code-only template. Known caveat: first emails may land in Junk until marked
+  safe; acceptable for a two-user app, DNS records can improve this later if
+  it ever matters. Custom SMTP carries ALL auth emails from then on (fine —
+  signups are admin-created; recovery is effectively the only mail).
 
 ## User flow
 
