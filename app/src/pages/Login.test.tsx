@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import Login from './Login';
+import { supabase } from '../lib/supabase';
 
 vi.mock('../lib/supabase', () => ({
   supabase: { auth: { signInWithPassword: vi.fn() } },
@@ -33,5 +34,17 @@ describe('Login', () => {
     render(<Login />);
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeDefined();
     expect(screen.getByRole('button', { name: 'Forgot password?' })).toBeDefined();
+  });
+
+  it('clears a stale sign-in error when visiting Forgot password and returning', async () => {
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({ error: new Error('bad') } as never);
+    render(<Login />);
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'j@example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'wrong' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    expect(await screen.findByText(/That didn't work/)).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Forgot password?' }));
+    fireEvent.click(screen.getByRole('button', { name: 'mock-back' }));
+    expect(screen.queryByText(/That didn't work/)).toBeNull();
   });
 });

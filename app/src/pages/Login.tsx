@@ -55,7 +55,7 @@ export default function Login() {
       </form>
       <button
         type="button"
-        onClick={() => setForgot(true)}
+        onClick={() => { setError(null); setForgot(true); }}
         className="mt-4 self-start text-sm text-ink/60 underline"
       >
         Forgot password?
