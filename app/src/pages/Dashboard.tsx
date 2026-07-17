@@ -123,58 +123,48 @@ export default function Dashboard() {
         <p className="py-10 text-center text-ink/60">No matchas match — widen the filters.</p>
       )}
 
-      {/* Full-width horizontal cards (owner feedback 2026-07-17 follow-up):
-          portrait photo on the left, details on the right. The photo slot
-          crops the adjusted 4:3 image to portrait from its centre — the
-          closest honouring of the framed position a vertical slot allows. */}
-      <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
         {visible.map((r) => {
           const c = r.cafe;
           const p = profileById.get(r.user_id);
           const hasDirections =
             c && c.latitude != null && c.longitude != null && c.google_place_id != null;
           return (
-            <div key={r.id} className="relative flex min-h-40 overflow-hidden rounded-2xl border border-sand bg-white">
-              <div className="relative w-28 shrink-0">
-                <SignedImage path={r.photo_path} alt={c?.name ?? 'Matcha'} thumb className="absolute inset-0 h-full w-full object-cover" />
-                {r.status === 'draft' && (
-                  <span className="absolute left-2 top-2 rounded-full bg-sand px-2 py-0.5 text-xs text-sand-ink">Draft</span>
-                )}
-              </div>
-              <div className="flex flex-1 flex-col">
-                <div className="p-3 pb-1 pr-12">
+            <div key={r.id} className="relative overflow-hidden rounded-2xl border border-sand bg-white">
+              <Link to={`/review/${r.id}`} className="block">
+                <div className="relative">
+                  <SignedImage path={r.photo_path} alt={c?.name ?? 'Matcha'} thumb className="h-36 w-full object-cover" />
+                  {r.status === 'draft' && (
+                    <span className="absolute left-2 top-2 rounded-full bg-sand px-2 py-0.5 text-xs text-sand-ink">Draft</span>
+                  )}
+                </div>
+                <div className="p-3 pb-1">
                   <p className="truncate font-display">{c?.name ?? 'Unknown cafe'}</p>
                   <p className="text-sm text-ink/60">
                     {Number(r.overall).toFixed(1)} ★{r.price != null ? ` · $${Number(r.price).toFixed(2)}` : ''}
                   </p>
-                  <p className="text-sm text-ink/60">
-                    {[r.milk, r.temperature].filter(Boolean).join(' · ')}
-                  </p>
                 </div>
-                {hasDirections ? (
-                  <a
-                    href={directionsUrl(c.latitude!, c.longitude!, c.google_place_id!)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="relative z-10 mt-auto flex min-h-11 w-fit items-center px-3 pb-1 text-sm text-matcha-deep underline"
-                  >
-                    Directions ↗
-                  </a>
-                ) : (
-                  <div className="pb-2" />
-                )}
-              </div>
-              {/* Whole-card tap target, stretched over the content; the
-                  Directions and profile links sit above it (z-10). */}
-              <Link to={`/review/${r.id}`} aria-label={c?.name ?? 'Matcha'} className="absolute inset-0" />
+              </Link>
               {p && (
                 <Link
                   to={`/reviewer/${r.user_id}`}
                   aria-label={`${p.display_name}'s profile`}
-                  className="absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-ink/60 text-xs font-medium text-cream backdrop-blur"
+                  className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full bg-ink/60 text-xs font-medium text-cream backdrop-blur"
                 >
                   {initialsFrom(p.display_name)}
                 </Link>
+              )}
+              {hasDirections ? (
+                <a
+                  href={directionsUrl(c.latitude!, c.longitude!, c.google_place_id!)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-11 items-center px-3 pb-1 text-sm text-matcha-deep underline"
+                >
+                  Directions ↗
+                </a>
+              ) : (
+                <div className="pb-2" />
               )}
             </div>
           );

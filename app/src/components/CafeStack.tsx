@@ -32,10 +32,15 @@ export default function CafeStack({ group, expanded, onToggle }: Props) {
     }
   }
 
+  // Horizontal card (owner feedback 2026-07-17 follow-up): portrait photo on
+  // the left, details filling the rest of the width. The photo slot crops the
+  // adjusted 4:3 image to portrait from its centre.
   const headerBody = (
-    <>
-      <SignedImage path={latest.photo_path} alt={cafe.name} thumb className="h-36 w-full object-cover" />
-      <div className="p-3 text-left">
+    <div className="flex min-h-36">
+      <div className="relative w-28 shrink-0">
+        <SignedImage path={latest.photo_path} alt={cafe.name} thumb className="absolute inset-0 h-full w-full object-cover" />
+      </div>
+      <div className="flex-1 p-3 text-left">
         <p className="truncate font-display">{cafe.name}</p>
         <p className="text-sm text-ink/60">
           {distanceM != null ? `${formatDistance(distanceM)} · ` : ''}
@@ -49,7 +54,7 @@ export default function CafeStack({ group, expanded, onToggle }: Props) {
           </span>
         )}
       </div>
-    </>
+    </div>
   );
 
   return (
