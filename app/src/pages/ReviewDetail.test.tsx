@@ -136,6 +136,12 @@ describe('ReviewDetail', () => {
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDefined();
   });
 
+  it('offers an Adjust button on the photo while editing', async () => {
+    renderDetail(makeReview({ photo_path: 'reviews/x.jpg' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    expect(screen.getByRole('button', { name: 'Adjust' })).toBeDefined();
+  });
+
   it('offers no delete button while editing a completed review', async () => {
     renderDetail(makeReview({}));
     fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));

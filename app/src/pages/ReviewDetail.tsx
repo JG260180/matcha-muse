@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { updateReview, deleteReview, type PhotoAction } from '../lib/api';
 import { OCCASIONS, type Review } from '../lib/types';
 import ReviewForm, { type ReviewDraft } from '../components/ReviewForm';
+import PhotoAdjust from '../components/PhotoAdjust';
 import SignedImage from '../components/SignedImage';
 import ConfirmDelete from '../components/ConfirmDelete';
 import BackToJournal from '../components/BackToJournal';
@@ -45,6 +46,13 @@ export default function ReviewDetail() {
   // Distinguishes delete from save so edit mode's busy/error copy is honest.
   const [deleting, setDeleting] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<ReviewDraft | null>(null);
+  // Crop/position (2026-07-17): the blob open in the PhotoAdjust dialog, the
+  // as-picked/as-downloaded original (so repeat Adjusts don't compound crops),
+  // and the existing-photo download state.
+  const [adjustSrc, setAdjustSrc] = useState<Blob | null>(null);
+  const [pickedOriginal, setPickedOriginal] = useState<Blob | null>(null);
+  const [adjustLoading, setAdjustLoading] = useState(false);
+  const [adjustFailed, setAdjustFailed] = useState(false);
 
   useEffect(() => {
     // Router reuses this component across /review/:id navigations, so clear
@@ -58,6 +66,10 @@ export default function ReviewDetail() {
     setFailed(false);
     setDeleting(false);
     setPendingDraft(null);
+    setAdjustSrc(null);
+    setPickedOriginal(null);
+    setAdjustLoading(false);
+    setAdjustFailed(false);
     Promise.all([
       supabase.from('reviews').select('*, cafe:cafes(*)').eq('id', id).maybeSingle(),
       supabase.auth.getUser(),
@@ -88,12 +100,14 @@ export default function ReviewDetail() {
     const file = e.target.files?.[0] ?? null;
     if (!file) return;
     setPhotoAction({ kind: 'replace', blob: file });
+    setPickedOriginal(file);
     setNewPhotoUrl(URL.createObjectURL(file));
     e.target.value = '';
   }
 
   function removePhoto() {
     setPhotoAction({ kind: 'remove' });
+    setPickedOriginal(null);
     setNewPhotoUrl(null);
   }
 
@@ -101,6 +115,27 @@ export default function ReviewDetail() {
     setPhotoAction({ kind: 'keep' });
     setNewPhotoUrl(null);
     setFailed(false);
+    setAdjustSrc(null);
+    setPickedOriginal(null);
+    setAdjustLoading(false);
+    setAdjustFailed(false);
+  }
+
+  // Adjusting the saved photo needs its pixels — download once, then reuse.
+  async function adjustExistingPhoto() {
+    if (!review?.photo_path || adjustLoading) return;
+    setAdjustLoading(true);
+    setAdjustFailed(false);
+    try {
+      const { data, error } = await supabase.storage.from('photos').download(review.photo_path);
+      if (error || !data) throw error ?? new Error('no data');
+      setPickedOriginal(data);
+      setAdjustSrc(data);
+    } catch {
+      setAdjustFailed(true);
+    } finally {
+      setAdjustLoading(false);
+    }
   }
 
   async function onSave(draft: ReviewDraft) {
@@ -170,6 +205,12 @@ export default function ReviewDetail() {
               >
                 ✕
               </button>
+              <button
+                type="button" onClick={adjustExistingPhoto}
+                className="absolute bottom-3 right-3 rounded-full bg-ink/60 px-3 py-1.5 text-sm text-cream backdrop-blur"
+              >
+                {adjustLoading ? 'Loading…' : 'Adjust'}
+              </button>
             </div>
           ) : photoAction.kind === 'replace' && newPhotoUrl ? (
             <div className="relative">
@@ -179,6 +220,13 @@ export default function ReviewDetail() {
                 className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-ink/60 text-lg leading-none text-cream backdrop-blur"
               >
                 ✕
+              </button>
+              <button
+                type="button"
+                onClick={() => setAdjustSrc(pickedOriginal ?? photoAction.blob)}
+                className="absolute bottom-3 right-3 rounded-full bg-ink/60 px-3 py-1.5 text-sm text-cream backdrop-blur"
+              >
+                Adjust
               </button>
             </div>
           ) : (
@@ -197,7 +245,22 @@ export default function ReviewDetail() {
         ) : (
           <SignedImage path={review.photo_path} alt={review.cafe?.name ?? 'Matcha'} className="h-56 w-full rounded-2xl object-cover" />
         )}
+        {editing && adjustFailed && (
+          <p className="pt-2 text-sm text-red-700">Couldn't load the photo to adjust. Check your connection and try again.</p>
+        )}
       </div>
+
+      {adjustSrc && (
+        <PhotoAdjust
+          photo={adjustSrc}
+          onDone={(cropped) => {
+            setPhotoAction({ kind: 'replace', blob: cropped });
+            setNewPhotoUrl(URL.createObjectURL(cropped));
+            setAdjustSrc(null);
+          }}
+          onCancel={() => setAdjustSrc(null)}
+        />
+      )}
 
       <div className="px-6 pb-2">
         <h2 className="font-display text-xl">{review.cafe?.name ?? 'Unknown cafe'}</h2>

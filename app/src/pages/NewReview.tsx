@@ -3,11 +3,16 @@ import { useNavigate, Link } from 'react-router-dom';
 import CafePicker, { type CafeChoice } from '../components/CafePicker';
 import ReviewForm, { type ReviewDraft } from '../components/ReviewForm';
 import BackToJournal from '../components/BackToJournal';
+import PhotoAdjust from '../components/PhotoAdjust';
 import { saveReviewOrQueue } from '../lib/api';
 
 export default function NewReview() {
   const navigate = useNavigate();
-  const [photo, setPhoto] = useState<File | null>(null);
+  const [photo, setPhoto] = useState<Blob | null>(null);
+  // The as-picked photo, kept so repeated Adjusts re-crop the original
+  // instead of compounding crops.
+  const [original, setOriginal] = useState<Blob | null>(null);
+  const [adjusting, setAdjusting] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [choice, setChoice] = useState<CafeChoice | null>(null);
   const [saving, setSaving] = useState(false);
@@ -18,6 +23,7 @@ export default function NewReview() {
     const file = e.target.files?.[0] ?? null;
     if (!file) return;
     setPhoto(file);
+    setOriginal(file);
     setPhotoUrl(URL.createObjectURL(file));
     // Reset so picking the same file again after removing still fires onChange.
     e.target.value = '';
@@ -25,6 +31,8 @@ export default function NewReview() {
 
   function removePhoto() {
     setPhoto(null);
+    setOriginal(null);
+    setAdjusting(false);
     setPhotoUrl(null);
   }
 
@@ -73,6 +81,13 @@ export default function NewReview() {
             >
               ✕
             </button>
+            <button
+              type="button"
+              onClick={() => setAdjusting(true)}
+              className="absolute bottom-3 right-3 rounded-full bg-ink/60 px-3 py-1.5 text-sm text-cream backdrop-blur"
+            >
+              Adjust
+            </button>
           </div>
         ) : (
           <div className="flex h-56 w-full flex-col items-center justify-center gap-3 rounded-2xl bg-matcha-mist text-matcha-deep">
@@ -88,6 +103,18 @@ export default function NewReview() {
           </div>
         )}
       </div>
+
+      {adjusting && (original ?? photo) && (
+        <PhotoAdjust
+          photo={(original ?? photo)!}
+          onDone={(cropped) => {
+            setPhoto(cropped);
+            setPhotoUrl(URL.createObjectURL(cropped));
+            setAdjusting(false);
+          }}
+          onCancel={() => setAdjusting(false)}
+        />
+      )}
 
       {!choice ? (
         <CafePicker onSelect={setChoice} />
