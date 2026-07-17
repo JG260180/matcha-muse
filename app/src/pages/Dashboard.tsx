@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import type { Profile, Review } from '../lib/types';
+import type { Profile, Review, Temperature } from '../lib/types';
+import { MILK_BUCKETS, milkBucket, type MilkBucket } from '../lib/nearMe';
 import { initialsFrom } from '../lib/profile';
 import { directionsUrl } from '../lib/googleLinks';
 import SignedImage from '../components/SignedImage';
 import NewFab from '../components/NewFab';
+
+const SERVES: (Temperature | 'all')[] = ['all', 'hot', 'iced'];
 
 export default function Dashboard() {
   const [reviews, setReviews] = useState<Review[] | null>(null);
@@ -13,6 +16,9 @@ export default function Dashboard() {
   const [fetchError, setFetchError] = useState(false);
   const [showDraftsOnly, setShowDraftsOnly] = useState(false);
   const [reviewer, setReviewer] = useState<string>('all');
+  // 2026-07-17: same serve/milk filters as Near Me, composing with the above.
+  const [serve, setServe] = useState<Temperature | 'all'>('all');
+  const [milks, setMilks] = useState<ReadonlySet<MilkBucket>>(new Set(MILK_BUCKETS));
 
   useEffect(() => {
     Promise.all([
@@ -37,16 +43,25 @@ export default function Dashboard() {
   const avg = (xs: number[]) =>
     xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(1) : '–';
   const byReviewer = reviewer === 'all' ? reviews : reviews.filter((r) => r.user_id === reviewer);
-  const cafeCount = new Set(byReviewer.map((r) => r.cafe_id).filter(Boolean)).size;
-  const drafts = byReviewer.filter((r) => r.status === 'draft');
-  const visible = showDraftsOnly && drafts.length > 0 ? drafts : byReviewer;
+  const filtered = byReviewer.filter(
+    (r) => (serve === 'all' || r.temperature === serve) && milks.has(milkBucket(r))
+  );
+  const cafeCount = new Set(filtered.map((r) => r.cafe_id).filter(Boolean)).size;
+  const drafts = filtered.filter((r) => r.status === 'draft');
+  const visible = showDraftsOnly && drafts.length > 0 ? drafts : filtered;
+
+  function toggleMilk(m: MilkBucket) {
+    const next = new Set(milks);
+    if (next.has(m)) next.delete(m); else next.add(m);
+    setMilks(next);
+  }
 
   return (
     <div className="px-6 pb-24">
       <div className="grid grid-cols-3 gap-3 py-4">
-        <Stat label="Matchas" value={String(byReviewer.length)} />
+        <Stat label="Matchas" value={String(filtered.length)} />
         <Stat label="Cafes" value={String(cafeCount)} />
-        <Stat label="Avg score" value={avg(byReviewer.map((r) => Number(r.overall)))} />
+        <Stat label="Avg score" value={avg(filtered.map((r) => Number(r.overall)))} />
       </div>
 
       {reviewerIds.length >= 2 && (
@@ -68,6 +83,34 @@ export default function Dashboard() {
         </div>
       )}
 
+      <div className="mb-3 flex gap-2" role="group" aria-label="Serve">
+        {SERVES.map((s) => (
+          <button
+            key={s}
+            type="button"
+            aria-pressed={serve === s}
+            onClick={() => setServe(s)}
+            className={`rounded-full px-4 py-1.5 text-sm capitalize ${serve === s ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink'}`}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+
+      <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Milk">
+        {MILK_BUCKETS.map((m) => (
+          <button
+            key={m}
+            type="button"
+            aria-pressed={milks.has(m)}
+            onClick={() => toggleMilk(m)}
+            className={`rounded-full px-3 py-1.5 text-sm capitalize ${milks.has(m) ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink line-through'}`}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+
       {drafts.length > 0 && (
         <button
           type="button"
@@ -83,6 +126,9 @@ export default function Dashboard() {
 
       {reviews.length === 0 && (
         <p className="py-10 text-center text-ink/60">Your first matcha awaits — tap the + to begin.</p>
+      )}
+      {reviews.length > 0 && visible.length === 0 && (
+        <p className="py-10 text-center text-ink/60">No matchas match — widen the filters.</p>
       )}
 
       <div className="grid grid-cols-2 gap-3">

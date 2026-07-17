@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Dashboard from './Dashboard';
 import type { Cafe, Profile, Review } from '../lib/types';
@@ -147,6 +147,49 @@ describe('Dashboard review links and drafts filter', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'All' }));
     expect(screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'))).toHaveLength(2);
+  });
+
+  // 2026-07-17 owner request: journal gets the same serve/milk filters as Near Me.
+  it('filters cards by serve', async () => {
+    const hot = makeReview({ temperature: 'hot' });
+    const iced = makeReview({ temperature: 'iced' });
+    renderDashboard([hot, iced]);
+    const serve = await screen.findByRole('group', { name: /serve/i });
+    fireEvent.click(within(serve).getByRole('button', { name: /^hot$/i }));
+    const cards = screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'));
+    expect(cards).toHaveLength(1);
+    expect(cards[0].getAttribute('href')).toBe(`/review/${hot.id}`);
+    // Stats follow the filter
+    expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('filters cards by milk bucket, with unspecified for none', async () => {
+    const oat = makeReview({ milk: 'oat' });
+    const none = makeReview({ milk: null });
+    renderDashboard([oat, none]);
+    const milk = await screen.findByRole('group', { name: /milk/i });
+    fireEvent.click(within(milk).getByRole('button', { name: /unspecified/i })); // exclude unspecified
+    let cards = screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'));
+    expect(cards).toHaveLength(1);
+    expect(cards[0].getAttribute('href')).toBe(`/review/${oat.id}`);
+
+    fireEvent.click(within(milk).getByRole('button', { name: /^oat$/i })); // exclude oat too
+    cards = screen.queryAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'));
+    expect(cards).toHaveLength(0);
+    expect(screen.getByText(/No matchas match/)).toBeDefined();
+  });
+
+  it('composes serve filter with the reviewer chips', async () => {
+    const mineHot = makeReview({ temperature: 'hot' });
+    const mineIced = makeReview({ temperature: 'iced' });
+    const theirsHot = makeReview({ user_id: 'u2', temperature: 'hot' });
+    renderDashboard([mineHot, mineIced, theirsHot], [justina, sam]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Justina Gardiner' }));
+    const serve = screen.getByRole('group', { name: /serve/i });
+    fireEvent.click(within(serve).getByRole('button', { name: /^hot$/i }));
+    const cards = screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'));
+    expect(cards).toHaveLength(1);
+    expect(cards[0].getAttribute('href')).toBe(`/review/${mineHot.id}`);
   });
 
   it('links to the reviewers list below the grid', async () => {
