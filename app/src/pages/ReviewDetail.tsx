@@ -42,6 +42,8 @@ export default function ReviewDetail() {
   const [newPhotoUrl, setNewPhotoUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  // Distinguishes delete from save so edit mode's busy/error copy is honest.
+  const [deleting, setDeleting] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<ReviewDraft | null>(null);
 
   useEffect(() => {
@@ -54,6 +56,7 @@ export default function ReviewDetail() {
     setNewPhotoUrl(null);
     setBusy(false);
     setFailed(false);
+    setDeleting(false);
     setPendingDraft(null);
     Promise.all([
       supabase.from('reviews').select('*, cafe:cafes(*)').eq('id', id).maybeSingle(),
@@ -105,6 +108,7 @@ export default function ReviewDetail() {
     if (!review) return;
     setBusy(true);
     setFailed(false);
+    setDeleting(false);
     try {
       const newPath = await updateReview(review, draft, photoAction);
       setReview({
@@ -142,6 +146,7 @@ export default function ReviewDetail() {
     if (!review) return;
     setBusy(true);
     setFailed(false);
+    setDeleting(true);
     try {
       await deleteReview(review);
       navigate('/');
@@ -205,7 +210,7 @@ export default function ReviewDetail() {
       {editing ? (
         <>
           {busy ? (
-            <p className="px-6 text-ink/60">Saving…</p>
+            <p className="px-6 text-ink/60">{deleting ? 'Deleting…' : 'Saving…'}</p>
           ) : (
             <ReviewForm
               onSubmit={onSave}
@@ -215,7 +220,22 @@ export default function ReviewDetail() {
               onCancel={onCancel}
             />
           )}
-          {failed && <p className="px-6 pt-2 text-sm text-red-700">Couldn't save. Check your connection and try again.</p>}
+          {failed && (
+            <p className="px-6 pt-2 text-sm text-red-700">
+              {deleting ? "Couldn't delete." : "Couldn't save."} Check your connection and try again.
+            </p>
+          )}
+          {/* 2026-07-17: menu photos and draft delete no longer require publishing */}
+          {review.cafe && (
+            <div className="px-6 pt-2">
+              <CafeMenu cafeId={review.cafe.id} cafeName={review.cafe.name} />
+            </div>
+          )}
+          {isDraft && isOwner && !busy && (
+            <div className="px-6 pt-4">
+              <ConfirmDelete onDelete={onDelete} />
+            </div>
+          )}
         </>
       ) : (
         <div className="space-y-4 px-6">

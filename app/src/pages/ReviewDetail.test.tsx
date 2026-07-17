@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ReviewDetail from './ReviewDetail';
-import { updateReview } from '../lib/api';
+import { updateReview, deleteReview } from '../lib/api';
 import type { Cafe, Review } from '../lib/types';
 
 const maybeSingle = vi.fn();
@@ -108,10 +108,38 @@ describe('ReviewDetail', () => {
     expect(screen.getByTestId('cafe-menu').getAttribute('data-cafe')).toBe('c1');
   });
 
-  it('hides the menu section while editing', async () => {
-    renderDetail(makeReview({ status: 'draft' })); // drafts open straight into edit mode
+  // 2026-07-17 owner request: menu photos must be addable without publishing,
+  // so the menu section now also shows while editing (drafts open in edit mode).
+  it('shows the menu section while editing a draft', async () => {
+    renderDetail(makeReview({ status: 'draft' }));
     await screen.findByRole('button', { name: 'Save changes' });
-    expect(screen.queryByTestId('cafe-menu')).toBeNull();
+    expect(screen.getByTestId('cafe-menu').getAttribute('data-cafe')).toBe('c1');
+  });
+
+  it('lets a draft be deleted while editing (two-tap confirm)', async () => {
+    vi.mocked(deleteReview).mockResolvedValueOnce(undefined);
+    renderDetail(makeReview({ status: 'draft' }));
+    const del = await screen.findByRole('button', { name: 'Delete this matcha' });
+    fireEvent.click(del);
+    fireEvent.click(screen.getByRole('button', { name: /tap again to confirm/i }));
+    await vi.waitFor(() => expect(deleteReview).toHaveBeenCalledOnce());
+  });
+
+  it('shows a delete-specific error when deleting a draft fails', async () => {
+    vi.mocked(deleteReview).mockRejectedValueOnce(new Error('offline'));
+    renderDetail(makeReview({ status: 'draft' }));
+    const del = await screen.findByRole('button', { name: 'Delete this matcha' });
+    fireEvent.click(del);
+    fireEvent.click(screen.getByRole('button', { name: /tap again to confirm/i }));
+    expect(await screen.findByText(/Couldn't delete/)).toBeDefined();
+    // The form is still there — the draft was not lost
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDefined();
+  });
+
+  it('offers no delete button while editing a completed review', async () => {
+    renderDetail(makeReview({}));
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    expect(screen.queryByRole('button', { name: 'Delete this matcha' })).toBeNull();
   });
 
   it('hides the menu section when the review has no cafe', async () => {
