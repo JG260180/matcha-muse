@@ -103,7 +103,21 @@ Work is on branch **`build/v1`** (repo root `C:\Users\justi\OneDrive\Documents\M
 - Quality-review notes on record: hung request briefly leaves no enabled controls on the code step (accepted); cross-photo… (n/a here); skipped minors: "Too many attempts" string dedupe, Send-again re-invoke assertion.
 - UI round-trip verified in the preview app (login → forgot → back). **STILL TO DO:** her template test email; live end-to-end reset with HER typing the password (assistant never touches passwords — also true of the SMTP key); her first real use of the flow doubles as setting her password (dashboard can't); then menu-feature acceptance in the same sitting; final whole-feature review verdict; merge + deploy.
 
-### Owner improvements (2026-07-17) — CODE COMPLETE on `feature/owner-improvements`, NOT merged/deployed
+### Owner improvements (2026-07-17) — ✅ SHIPPED TO PRODUCTION same day
+
+**Owner accepted in the dev preview ("all working now"), merged to `main`
+(fast-forward to `c95ff5f`), pushed, and deployed to
+https://matcha-muse.pages.dev (bundle `index-DkhK4Tqr.js`, deploy
+1e7cdc82; live-verified serving all new feature strings).** Includes the
+original six improvements plus the Round 2 and Round 3 owner-feedback batches
+below. Price migration applied + verified same day. 178 tests, tsc + build
+clean. `feature/owner-improvements` kept (can be deleted). Remaining niceties
+for next on-device session: portrait-photo Adjust spot-check on her actual
+iPhone (EXIF upright), and note that published reviews now REQUIRE a photo —
+old photo-less complete reviews (if any) can't be re-published until one is
+added.
+
+#### Original scope (for the record) — was: CODE COMPLETE, NOT merged/deployed
 
 Six improvements Justina requested on 2026-07-17, built in one autonomous session
 (no live Q&A — design decisions follow existing patterns and are recorded in the
