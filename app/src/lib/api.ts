@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { thumbPath } from './signedUrls';
 import type { CafeChoice } from '../components/CafePicker';
 import type { ReviewDraft } from '../components/ReviewForm';
 import { enqueue, blobToBase64, base64ToBlob, type QueuedReview } from './offlineQueue';
@@ -46,6 +47,7 @@ export async function saveReview(
     photoPath = `reviews/${crypto.randomUUID()}.jpg`;
     const { error } = await supabase.storage.from('photos').upload(photoPath, photo);
     if (error) throw error;
+    await uploadThumb(photoPath, photo);
   }
 
   const { error } = await supabase.from('reviews').insert({
@@ -102,6 +104,27 @@ export async function downscalePhoto(
   }
 }
 
+// Card-sized copy uploaded next to the full photo, so the journal grid pulls
+// ~10x fewer bytes per card. Best-effort on EVERY failure path: a missing
+// thumb only costs bandwidth — SignedImage falls back to the full photo.
+async function uploadThumb(path: string, photo: Blob): Promise<void> {
+  try {
+    const thumb = await downscalePhoto(photo, 640, 0.7);
+    const { error } = await supabase.storage.from('photos').upload(thumbPath(path), thumb);
+    if (error) console.warn('thumb upload failed:', error.message);
+  } catch {
+    /* full photo remains the fallback */
+  }
+}
+
+// Removes a photo and its thumb. Orphan accepted — cleanup failure must never
+// fail the operation, but surface it so storage-policy problems are
+// discoverable. (Old photos have no thumb; remove ignores missing paths.)
+async function cleanupPhoto(path: string): Promise<void> {
+  const { error } = await supabase.storage.from('photos').remove([path, thumbPath(path)]);
+  if (error) console.warn('photo cleanup failed:', error.message);
+}
+
 export async function saveReviewOrQueue(
   choice: CafeChoice,
   draft: ReviewDraft,
@@ -151,6 +174,7 @@ export async function updateReview(
     const newPath = `reviews/${crypto.randomUUID()}.jpg`;
     const { error } = await supabase.storage.from('photos').upload(newPath, small);
     if (error) throw error;
+    await uploadThumb(newPath, small);
     photoPath = newPath;
   } else if (photo.kind === 'remove') {
     photoPath = null;
@@ -179,23 +203,35 @@ export async function updateReview(
   if (error) throw error;
 
   if (photo.kind !== 'keep' && review.photo_path) {
-    const { error: cleanupError } = await supabase.storage.from('photos').remove([review.photo_path]);
-    // Orphan accepted — cleanup failure must never fail the operation, but
-    // surface it in the console so storage-policy problems are discoverable.
-    if (cleanupError) console.warn('photo cleanup failed:', cleanupError.message);
+    await cleanupPhoto(review.photo_path);
   }
 
   return photoPath;
+}
+
+// Commits an adjusted photo immediately: "Use photo" IS the save for a photo
+// that's already on the card (owner feedback 2026-07-17 follow-up — requiring
+// a second "Save changes" tap was sloppy). Only the photo columns change;
+// in-progress form edits stay pending. Same upload-before-update stance as
+// updateReview; old-photo cleanup is best-effort.
+export async function replaceReviewPhoto(review: Review, blob: Blob): Promise<string> {
+  const small = await downscalePhoto(blob);
+  const newPath = `reviews/${crypto.randomUUID()}.jpg`;
+  const { error } = await supabase.storage.from('photos').upload(newPath, small);
+  if (error) throw error;
+  await uploadThumb(newPath, small);
+  const { error: updateError } = await supabase
+    .from('reviews').update({ photo_path: newPath }).eq('id', review.id);
+  if (updateError) throw updateError;
+  if (review.photo_path) await cleanupPhoto(review.photo_path);
+  return newPath;
 }
 
 // Best-effort photo removal first, then the row. Row-delete failure surfaces
 // to the caller; photo cleanup failure is an accepted orphan.
 export async function deleteReview(review: Review): Promise<void> {
   if (review.photo_path) {
-    const { error: cleanupError } = await supabase.storage.from('photos').remove([review.photo_path]);
-    // Orphan accepted — cleanup failure must never fail the operation, but
-    // surface it in the console so storage-policy problems are discoverable.
-    if (cleanupError) console.warn('photo cleanup failed:', cleanupError.message);
+    await cleanupPhoto(review.photo_path);
   }
   const { error } = await supabase.from('reviews').delete().eq('id', review.id);
   if (error) throw error;

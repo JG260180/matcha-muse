@@ -129,7 +129,7 @@ export default function Dashboard() {
             <div key={r.id} className="relative overflow-hidden rounded-2xl border border-sand bg-white">
               <Link to={`/review/${r.id}`} className="block">
                 <div className="relative">
-                  <SignedImage path={r.photo_path} alt={c?.name ?? 'Matcha'} className="h-36 w-full object-cover" />
+                  <SignedImage path={r.photo_path} alt={c?.name ?? 'Matcha'} thumb className="h-36 w-full object-cover" />
                   {r.status === 'draft' && (
                     <span className="absolute left-2 top-2 rounded-full bg-sand px-2 py-0.5 text-xs text-sand-ink">Draft</span>
                   )}

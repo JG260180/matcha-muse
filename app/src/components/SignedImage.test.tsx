@@ -8,6 +8,7 @@ const invalidateSignedUrl = vi.fn();
 vi.mock('../lib/signedUrls', () => ({
   getSignedUrl: (path: string) => getSignedUrl(path),
   invalidateSignedUrl: (path: string) => invalidateSignedUrl(path),
+  thumbPath: (path: string) => path.replace(/\.jpg$/, '.thumb.jpg'),
 }));
 
 beforeEach(() => {
@@ -38,6 +39,25 @@ describe('SignedImage', () => {
     await vi.waitFor(() => expect(getSignedUrl).toHaveBeenCalled());
     expect(screen.queryByRole('img')).toBeNull();
     expect(screen.getByLabelText('Matcha')).toBeDefined();
+  });
+
+  it('uses the thumb URL for card contexts', async () => {
+    getSignedUrl.mockImplementation((p: string) =>
+      Promise.resolve(p.includes('.thumb') ? 'https://signed/thumb.jpg' : 'https://signed/full.jpg')
+    );
+    render(<SignedImage path="reviews/a.jpg" alt="Matcha" thumb />);
+    const img = (await screen.findByRole('img')) as HTMLImageElement;
+    expect(img.src).toBe('https://signed/thumb.jpg');
+    expect(getSignedUrl).toHaveBeenCalledWith('reviews/a.thumb.jpg');
+  });
+
+  it('falls back to the full photo when no thumb exists (older photos)', async () => {
+    getSignedUrl.mockImplementation((p: string) =>
+      Promise.resolve(p.includes('.thumb') ? null : 'https://signed/full.jpg')
+    );
+    render(<SignedImage path="reviews/a.jpg" alt="Matcha" thumb />);
+    const img = (await screen.findByRole('img')) as HTMLImageElement;
+    expect(img.src).toBe('https://signed/full.jpg');
   });
 
   it('re-mints once when the image errors (expired token), then gives up', async () => {

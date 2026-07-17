@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { updateReview, deleteReview, type PhotoAction } from '../lib/api';
+import { updateReview, deleteReview, replaceReviewPhoto, type PhotoAction } from '../lib/api';
 import { OCCASIONS, type Review } from '../lib/types';
 import ReviewForm, { type ReviewDraft, type ReviewFormHandle } from '../components/ReviewForm';
 import CafePicker, { type CafeChoice } from '../components/CafePicker';
@@ -56,6 +56,9 @@ export default function ReviewDetail() {
   const [pickedOriginal, setPickedOriginal] = useState<Blob | null>(null);
   const [adjustLoading, setAdjustLoading] = useState(false);
   const [adjustFailed, setAdjustFailed] = useState(false);
+  // Adjusting an already-saved photo commits on "Use photo"; when that save
+  // fails, the crop is kept as a pending change and this explains why.
+  const [photoSaveFailed, setPhotoSaveFailed] = useState(false);
   // Cafe-less drafts (2026-07-17): the cafe picked during this edit session,
   // applied on save; publishing without one is blocked with needCafe.
   const [pendingCafe, setPendingCafe] = useState<CafeChoice | null>(null);
@@ -85,6 +88,7 @@ export default function ReviewDetail() {
     setPickedOriginal(null);
     setAdjustLoading(false);
     setAdjustFailed(false);
+    setPhotoSaveFailed(false);
     setPendingCafe(null);
     setNeedCafe(false);
     setLeaveTo(null);
@@ -141,6 +145,7 @@ export default function ReviewDetail() {
     setPickedOriginal(null);
     setAdjustLoading(false);
     setAdjustFailed(false);
+    setPhotoSaveFailed(false);
     setPendingCafe(null);
     setNeedCafe(false);
   }
@@ -296,12 +301,37 @@ export default function ReviewDetail() {
         {editing && adjustFailed && (
           <p className="pt-2 text-sm text-red-700">Couldn't load the photo to adjust. Check your connection and try again.</p>
         )}
+        {editing && photoSaveFailed && (
+          <p className="pt-2 text-sm text-red-700">Couldn't save the adjusted photo — it's kept here. Check your connection, then tap Save changes.</p>
+        )}
       </div>
 
       {adjustSrc && (
         <PhotoAdjust
           photo={adjustSrc}
-          onDone={(cropped) => {
+          onDone={async (cropped) => {
+            // Adjusting the photo already on the card: "Use photo" IS the
+            // save (owner feedback 2026-07-17 follow-up) — no second "Save
+            // changes" tap. The dialog stays up (its busy state) until the
+            // upload lands. Other in-progress form edits stay pending.
+            if (photoAction.kind === 'keep' && review.photo_path) {
+              setPhotoSaveFailed(false);
+              try {
+                const newPath = await replaceReviewPhoto(review, cropped);
+                setReview({ ...review, photo_path: newPath });
+              } catch {
+                // Never lose the crop: keep it as a pending replace that
+                // "Save changes" will commit, and say why.
+                setPhotoAction({ kind: 'replace', blob: cropped });
+                setNewPhotoUrl(URL.createObjectURL(cropped));
+                setPhotoSaveFailed(true);
+              } finally {
+                setAdjustSrc(null);
+              }
+              return;
+            }
+            // A newly picked photo isn't uploaded yet — the whole replacement
+            // saves together on "Save changes", as before.
             setPhotoAction({ kind: 'replace', blob: cropped });
             setNewPhotoUrl(URL.createObjectURL(cropped));
             setAdjustSrc(null);

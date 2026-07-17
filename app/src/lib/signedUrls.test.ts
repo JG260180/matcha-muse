@@ -2,6 +2,7 @@ import {
   getSignedUrl,
   invalidateSignedUrl,
   clearSignedUrlCacheForTests,
+  thumbPath,
 } from './signedUrls';
 
 const createSignedUrls = vi.fn();
@@ -25,6 +26,16 @@ const ok = (paths: string[]) => ({
 beforeEach(() => {
   vi.clearAllMocks();
   clearSignedUrlCacheForTests();
+});
+
+describe('thumbPath', () => {
+  it('inserts .thumb before the extension', () => {
+    expect(thumbPath('reviews/abc.jpg')).toBe('reviews/abc.thumb.jpg');
+  });
+
+  it('appends .thumb when there is no extension', () => {
+    expect(thumbPath('reviews/abc')).toBe('reviews/abc.thumb');
+  });
 });
 
 describe('getSignedUrl', () => {

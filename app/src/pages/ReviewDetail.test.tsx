@@ -2,20 +2,23 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ReviewDetail from './ReviewDetail';
 import { LeaveGuardProvider } from '../lib/leaveGuard';
-import { updateReview, deleteReview } from '../lib/api';
+import { updateReview, deleteReview, replaceReviewPhoto } from '../lib/api';
 import type { Cafe, Review } from '../lib/types';
 
 const maybeSingle = vi.fn();
 const getUser = vi.fn();
+const download = vi.fn();
 vi.mock('../lib/supabase', () => ({
   supabase: {
     auth: { getUser: () => getUser() },
     from: () => ({ select: () => ({ eq: () => ({ maybeSingle: () => maybeSingle() }) }) }),
+    storage: { from: () => ({ download: (path: string) => download(path) }) },
   },
 }));
 vi.mock('../lib/api', () => ({
   updateReview: vi.fn(),
   deleteReview: vi.fn(),
+  replaceReviewPhoto: vi.fn(),
 }));
 vi.mock('../components/SignedImage', () => ({
   default: ({ alt }: { alt: string }) => <div role="img" aria-label={alt} />,
@@ -219,6 +222,57 @@ describe('ReviewDetail', () => {
     renderDetail(makeReview({ photo_path: 'reviews/x.jpg' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
     expect(screen.getByRole('button', { name: 'Adjust' })).toBeDefined();
+  });
+
+  // Adjusting a photo that's already on the card: "Use photo" commits it by
+  // itself — needing a second "Save changes" tap was owner-flagged as sloppy.
+  describe('adjusting the saved photo', () => {
+    beforeEach(() => {
+      // jsdom has no object URLs; PhotoAdjust needs the pair stubbed.
+      vi.stubGlobal('URL', Object.assign(Object.create(URL), {
+        createObjectURL: vi.fn(() => 'blob:test'),
+        revokeObjectURL: vi.fn(),
+      }));
+      download.mockResolvedValue({ data: new Blob(['p'], { type: 'image/jpeg' }), error: null });
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    async function openAdjustAndUsePhoto() {
+      renderDetail(makeReview({}));
+      fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Adjust' }));
+      // Same readiness dance as PhotoAdjust's own tests: jsdom measures 0.
+      const img = (await screen.findByAltText('Photo being adjusted')) as HTMLImageElement;
+      Object.defineProperty(img, 'naturalWidth', { value: 2000 });
+      Object.defineProperty(img, 'naturalHeight', { value: 1000 });
+      const frame = img.parentElement!;
+      Object.defineProperty(frame, 'clientWidth', { value: 400 });
+      Object.defineProperty(frame, 'clientHeight', { value: 300 });
+      fireEvent.resize(window);
+      fireEvent.load(img);
+      fireEvent.click(screen.getByRole('button', { name: 'Use photo' }));
+    }
+
+    it('saves on "Use photo" alone — no Save changes needed', async () => {
+      vi.mocked(replaceReviewPhoto).mockResolvedValue('reviews/new.jpg');
+      await openAdjustAndUsePhoto();
+      await vi.waitFor(() => expect(replaceReviewPhoto).toHaveBeenCalledOnce());
+      await vi.waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: 'Adjust photo' })).toBeNull()
+      );
+      expect(updateReview).not.toHaveBeenCalled();
+      // Still in edit mode, showing the (now saved) photo as current.
+      expect(screen.getByRole('button', { name: 'Adjust' })).toBeDefined();
+    });
+
+    it('keeps the crop as a pending change when the save fails', async () => {
+      vi.mocked(replaceReviewPhoto).mockRejectedValue(new Error('offline'));
+      await openAdjustAndUsePhoto();
+      expect(await screen.findByText(/Couldn't save the adjusted photo/)).toBeDefined();
+      // The crop was not lost: it's the pending new photo, Save changes retries.
+      expect(screen.getByAltText('New matcha photo')).toBeDefined();
+      expect(screen.getByRole('button', { name: 'Save changes' })).toBeDefined();
+    });
   });
 
   it('offers no delete button while editing a completed review', async () => {

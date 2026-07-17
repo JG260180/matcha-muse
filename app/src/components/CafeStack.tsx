@@ -34,7 +34,7 @@ export default function CafeStack({ group, expanded, onToggle }: Props) {
 
   const headerBody = (
     <>
-      <SignedImage path={latest.photo_path} alt={cafe.name} className="h-36 w-full object-cover" />
+      <SignedImage path={latest.photo_path} alt={cafe.name} thumb className="h-36 w-full object-cover" />
       <div className="p-3 text-left">
         <p className="truncate font-display">{cafe.name}</p>
         <p className="text-sm text-ink/60">
@@ -109,7 +109,7 @@ export default function CafeStack({ group, expanded, onToggle }: Props) {
               to={`/review/${r.id}`}
               className="flex gap-3 overflow-hidden rounded-xl border border-sand bg-white"
             >
-              <SignedImage path={r.photo_path} alt={cafe.name} className="h-20 w-20 shrink-0 object-cover" />
+              <SignedImage path={r.photo_path} alt={cafe.name} thumb className="h-20 w-20 shrink-0 object-cover" />
               <div className="py-2 pr-3">
                 <p className="text-sm">
                   {Number(r.overall).toFixed(1)} ★ · {detailLine(r)}

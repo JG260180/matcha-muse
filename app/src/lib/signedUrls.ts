@@ -61,6 +61,14 @@ export function getSignedUrl(path: string): Promise<string | null> {
   return url;
 }
 
+/** Storage path of the card-sized copy uploaded next to a full photo
+ *  (`reviews/x.jpg` → `reviews/x.thumb.jpg`). Older photos have no thumb;
+ *  SignedImage falls back to the full photo when the mint fails. */
+export function thumbPath(path: string): string {
+  const dot = path.lastIndexOf('.');
+  return dot === -1 ? `${path}.thumb` : `${path.slice(0, dot)}.thumb${path.slice(dot)}`;
+}
+
 /** Drop a cached URL (e.g. after an <img> error — likely an expired token). */
 export function invalidateSignedUrl(path: string): void {
   cache.delete(path);

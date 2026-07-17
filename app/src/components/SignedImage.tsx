@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react';
-import { getSignedUrl, invalidateSignedUrl } from '../lib/signedUrls';
+import { getSignedUrl, invalidateSignedUrl, thumbPath } from '../lib/signedUrls';
 
-interface Props { path: string | null; alt: string; className?: string }
+interface Props {
+  path: string | null;
+  alt: string;
+  className?: string;
+  /** Card-sized contexts ask for the small copy uploaded next to the photo;
+   *  photos saved before thumbs existed fall back to the full image. */
+  thumb?: boolean;
+}
 
-export default function SignedImage({ path, alt, className }: Props) {
+export default function SignedImage({ path, alt, className, thumb = false }: Props) {
   const [url, setUrl] = useState<string | null>(null);
   // Bumped once when the <img> itself errors (an expired signed token): the
   // cached URL is dropped and one fresh mint is attempted.
@@ -17,13 +24,14 @@ export default function SignedImage({ path, alt, className }: Props) {
     setUrl(null);
     if (!path) return;
     let stale = false;
-    getSignedUrl(path).then((u) => {
+    (async () => {
+      const u = (thumb ? await getSignedUrl(thumbPath(path)) : null) ?? (await getSignedUrl(path));
       if (!stale) setUrl(u);
-    });
+    })();
     return () => {
       stale = true;
     };
-  }, [path, retry]);
+  }, [path, thumb, retry]);
 
   if (!path || !url) return <div className={`bg-matcha-mist ${className ?? ''}`} aria-label={alt} />;
   return (
@@ -36,6 +44,7 @@ export default function SignedImage({ path, alt, className }: Props) {
       onError={() => {
         if (retry > 0) return;
         invalidateSignedUrl(path);
+        if (thumb) invalidateSignedUrl(thumbPath(path));
         setRetry(1);
       }}
     />
