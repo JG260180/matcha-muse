@@ -179,6 +179,23 @@ describe('Dashboard review links and drafts filter', () => {
     expect(screen.getByText(/No matchas match/)).toBeDefined();
   });
 
+  it('resets the drafts-only toggle when a serve/milk filter changes', async () => {
+    const draft = makeReview({ status: 'draft', temperature: 'hot' });
+    const complete = makeReview({ temperature: 'iced' });
+    renderDashboard([draft, complete]);
+    fireEvent.click(await screen.findByRole('button', { name: /draft.*waiting/i }));
+    const serve = screen.getByRole('group', { name: /serve/i });
+    fireEvent.click(within(serve).getByRole('button', { name: /^iced$/i }));
+    // drafts-only must not silently reassert: the iced complete card shows
+    const cards = screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'));
+    expect(cards).toHaveLength(1);
+    expect(cards[0].getAttribute('href')).toBe(`/review/${complete.id}`);
+    fireEvent.click(within(serve).getByRole('button', { name: /^all$/i }));
+    expect(
+      screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'))
+    ).toHaveLength(2);
+  });
+
   it('composes serve filter with the reviewer chips', async () => {
     const mineHot = makeReview({ temperature: 'hot' });
     const mineIced = makeReview({ temperature: 'iced' });

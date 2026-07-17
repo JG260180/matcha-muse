@@ -89,7 +89,7 @@ export default function Dashboard() {
             key={s}
             type="button"
             aria-pressed={serve === s}
-            onClick={() => setServe(s)}
+            onClick={() => { setServe(s); setShowDraftsOnly(false); }}
             className={`rounded-full px-4 py-1.5 text-sm capitalize ${serve === s ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink'}`}
           >
             {s}
@@ -103,7 +103,7 @@ export default function Dashboard() {
             key={m}
             type="button"
             aria-pressed={milks.has(m)}
-            onClick={() => toggleMilk(m)}
+            onClick={() => { toggleMilk(m); setShowDraftsOnly(false); }}
             className={`rounded-full px-3 py-1.5 text-sm capitalize ${milks.has(m) ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink line-through'}`}
           >
             {m}

@@ -30,11 +30,15 @@ export default function PhotoAdjust({ photo, onDone, onCancel }: Props) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const drag = useRef<{ x: number; y: number; baseX: number; baseY: number } | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  // A crop render can still be in flight when Cancel/Escape unmounts the
+  // dialog — a late onDone must not apply a crop the user backed out of.
+  const unmounted = useRef(false);
 
   useEffect(() => {
     returnFocusRef.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
     return () => {
+      unmounted.current = true;
       URL.revokeObjectURL(url);
       returnFocusRef.current?.focus();
     };
@@ -109,9 +113,9 @@ export default function PhotoAdjust({ photo, onDone, onCancel }: Props) {
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY)
       );
-      onDone(blob ?? photo);
+      if (!unmounted.current) onDone(blob ?? photo);
     } catch {
-      onDone(photo);
+      if (!unmounted.current) onDone(photo);
     }
   }
 
