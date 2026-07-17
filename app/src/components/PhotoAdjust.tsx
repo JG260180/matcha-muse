@@ -27,6 +27,7 @@ export default function PhotoAdjust({ photo, onDone, onCancel }: Props) {
   const [frame, setFrame] = useState<Size | null>(null);
   const [view, setView] = useState<CropView>({ zoom: 1, offsetX: 0, offsetY: 0 });
   const [busy, setBusy] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const frameRef = useRef<HTMLDivElement | null>(null);
   const drag = useRef<{ x: number; y: number; baseX: number; baseY: number } | null>(null);
   // A crop render can still be in flight when Cancel/Escape unmounts the
@@ -40,6 +41,7 @@ export default function PhotoAdjust({ photo, onDone, onCancel }: Props) {
   // "Preparing…" forever. Don't regress this.
   useEffect(() => {
     unmounted.current = false;
+    setLoadFailed(false);
     const u = URL.createObjectURL(photo);
     setUrl(u);
     return () => {
@@ -167,6 +169,7 @@ export default function PhotoAdjust({ photo, onDone, onCancel }: Props) {
               const el = e.currentTarget;
               setNatural({ width: el.naturalWidth, height: el.naturalHeight });
             }}
+            onError={() => setLoadFailed(true)}
             className="pointer-events-none absolute left-1/2 top-1/2 max-w-none"
             style={
               ready
@@ -178,6 +181,18 @@ export default function PhotoAdjust({ photo, onDone, onCancel }: Props) {
                 : { visibility: 'hidden' }
             }
           />}
+          {/* A big photo can take seconds to decode on the phone — without
+              this the dialog is just a black screen until it's ready. */}
+          {!ready && !loadFailed && (
+            <p className="absolute inset-0 flex items-center justify-center text-sm text-cream/70">
+              Loading photo…
+            </p>
+          )}
+          {loadFailed && (
+            <p className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-cream/80">
+              Couldn't show this photo — cancel and try again.
+            </p>
+          )}
         </div>
       </div>
 

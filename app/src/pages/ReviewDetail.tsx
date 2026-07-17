@@ -148,6 +148,12 @@ export default function ReviewDetail() {
   // Adjusting the saved photo needs its pixels — download once, then reuse.
   async function adjustExistingPhoto() {
     if (!review?.photo_path || adjustLoading) return;
+    if (pickedOriginal) {
+      // Already downloaded this edit session (e.g. a cancelled Adjust) —
+      // reuse it instead of paying the network round-trip again.
+      setAdjustSrc(pickedOriginal);
+      return;
+    }
     setAdjustLoading(true);
     setAdjustFailed(false);
     try {

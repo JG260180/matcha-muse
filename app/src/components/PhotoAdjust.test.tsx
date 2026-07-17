@@ -43,6 +43,20 @@ describe('PhotoAdjust', () => {
     expect(screen.getByRole('button', { name: 'Use photo' })).toBeEnabled();
   });
 
+  it('shows a loading hint until the photo is ready (no blank black screen)', () => {
+    renderAdjust();
+    expect(screen.getByText('Loading photo…')).toBeDefined();
+    makeReady();
+    expect(screen.queryByText('Loading photo…')).toBeNull();
+  });
+
+  it('shows a failure message when the photo cannot be decoded', () => {
+    renderAdjust();
+    fireEvent.error(screen.getByAltText('Photo being adjusted'));
+    expect(screen.getByText(/Couldn't show this photo/)).toBeDefined();
+    expect(screen.queryByText('Loading photo…')).toBeNull();
+  });
+
   it('Cancel and Escape both call onCancel', () => {
     const { onCancel } = renderAdjust();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
