@@ -95,6 +95,21 @@ test('date defaults to today and a changed date is submitted', async () => {
   );
 });
 
+// 2026-07-17 owner rule: publishing needs a photo; drafts don't.
+test('no photo: Save matcha stays disabled but drafts still save', async () => {
+  const onSubmit = vi.fn();
+  render(<ReviewForm onSubmit={onSubmit} hasPhoto={false} />);
+  const overall = within(screen.getByRole('group', { name: 'Overall' }));
+  await userEvent.click(overall.getByRole('button', { name: '4 stars' }));
+  await userEvent.type(screen.getByLabelText('Price'), '6.50');
+  expect(screen.getByRole('button', { name: 'Save matcha' })).toBeDisabled();
+  expect(screen.getByText(/Publishing needs a photo/)).toBeDefined();
+  const draftBtn = screen.getByRole('button', { name: 'Save as draft — finish details later' });
+  expect(draftBtn).toBeEnabled();
+  await userEvent.click(draftBtn);
+  expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ status: 'draft' }));
+});
+
 test('controlRef drives the form from outside (leave-guard dialog)', async () => {
   const onSubmit = vi.fn();
   const ref = { current: null as ReviewFormHandle | null };

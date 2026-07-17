@@ -108,7 +108,7 @@ export default function NewReview() {
           </div>
         ) : (
           <div className="flex h-56 w-full flex-col items-center justify-center gap-3 rounded-2xl bg-matcha-mist text-matcha-deep">
-            <span className="text-sm">Add a photo of your matcha (optional)</span>
+            <span className="px-6 text-center text-sm">Add a photo of your matcha — needed to publish, drafts can skip it</span>
             <label className="cursor-pointer rounded-xl bg-matcha-deep px-5 py-2.5 text-cream">
               Take a photo
               <input type="file" accept="image/*" capture="environment" onChange={onPhoto} className="hidden" />
@@ -151,7 +151,7 @@ export default function NewReview() {
           {saving ? (
             <p className="px-6 text-ink/60">Saving…</p>
           ) : (
-            <ReviewForm onSubmit={onSubmit} controlRef={formRef} />
+            <ReviewForm onSubmit={onSubmit} controlRef={formRef} hasPhoto={photo != null} />
           )}
           {needCafe && (
             <p className="px-6 pt-2 text-sm text-red-700">Add the cafe before publishing — or save it as a draft.</p>

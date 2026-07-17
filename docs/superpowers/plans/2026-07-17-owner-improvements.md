@@ -91,3 +91,10 @@ autonomous session), TDD on new logic, full suite + tsc + build gate each task.
 - **Browser-pane gotcha:** simulated ref-clicks sometimes miss React handlers
   on small text buttons; element.click() via javascript_tool lands, and state
   updates flush async — query the DOM in a follow-up call, not synchronously.
+- **Round 3 (owner feedback, same day):** PhotoAdjust StrictMode fix (object
+  URL + unmounted flag now managed inside the mount effect — the grey-image /
+  "Preparing…" hang), and photo-required-to-publish rule (`hasPhoto` prop on
+  ReviewForm; drafts exempt). 178 tests. Live-verified with an injected test
+  image: adjust dialog shows the image, zoom works, Use photo completes and
+  returns the crop; Save matcha disables without a photo (hint shown), draft
+  stays enabled.

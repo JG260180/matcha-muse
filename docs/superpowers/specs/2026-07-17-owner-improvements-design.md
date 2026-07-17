@@ -125,6 +125,23 @@ Justina tested round 1 (partly against the live site — items she reported as
 4. **Photo block labelled "(optional)"** — it never was compulsory, but read
    as if it were.
 
+## Round 3 (same day) — PhotoAdjust glitch + photo rule
+
+1. **PhotoAdjust StrictMode bug (the "grey image / dead zoom / Preparing…
+   forever" glitch):** the mount effect revoked the object URL and latched an
+   `unmounted` flag during StrictMode's simulated unmount, and nothing reset
+   them on the re-run. Object-URL creation now lives inside the effect (keyed
+   on the photo) with `unmounted.current = false` reset in the body. Rule of
+   thumb recorded: any effect cleanup that revokes/undoes a mount-time
+   resource must recreate it in the effect body, never at render/state-init.
+2. **Photo required to publish, optional for drafts** (owner rule): ReviewForm
+   gains `hasPhoto` (pages pass photo presence in); "Save matcha" disabled
+   without one, with a "Publishing needs a photo — drafts don't." hint; photo
+   block copy now says "needed to publish, drafts can skip it". Removing the
+   photo while editing a published review blocks re-publishing until a new
+   one is added. App-level rule only (no DB constraint — deliberate, to avoid
+   another migration).
+
 ## Out of scope (parked)
 
 - Menu section inside NewReview before any save (needs early cafe creation +

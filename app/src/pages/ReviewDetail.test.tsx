@@ -39,7 +39,8 @@ const cafe: Cafe = {
 
 function makeReview(over: Partial<Review>): Review {
   return {
-    id: 'r1', user_id: 'u1', cafe_id: 'c1', photo_path: null, drank_at: '2026-06-20T10:00:00Z',
+    // photo_path set by default: publishing requires a photo (2026-07-17)
+    id: 'r1', user_id: 'u1', cafe_id: 'c1', photo_path: 'reviews/p.jpg', drank_at: '2026-06-20T10:00:00Z',
     overall: 4, taste: null, sweetness: null, texture: null,
     temperature: 'iced', milk: 'oat', drink_style: null, size: null,
     price: 6.5, occasions: [], note: 'silky', status: 'complete', cafe,

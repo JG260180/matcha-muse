@@ -47,6 +47,9 @@ interface Props {
   draftLabel?: string | null; // null hides the secondary button
   onCancel?: () => void;
   controlRef?: React.MutableRefObject<ReviewFormHandle | null>;
+  /** Publishing requires a photo (owner rule 2026-07-17); drafts don't.
+   *  The photo lives outside this form, so the page passes its presence in. */
+  hasPhoto?: boolean;
 }
 
 export default function ReviewForm({
@@ -56,6 +59,7 @@ export default function ReviewForm({
   draftLabel = 'Save as draft — finish details later',
   onCancel,
   controlRef,
+  hasPhoto = true,
 }: Props) {
   // Lazy init so "today" is read when the form opens, not at module load
   // (the PWA can stay open across midnight).
@@ -65,8 +69,8 @@ export default function ReviewForm({
   const patch = (p: Partial<ReviewDraft>) => setD((prev) => ({ ...prev, ...p }));
   const priceTrimmed = d.price.trim();
   const priceOk = /^\d+(\.\d{1,2})?$/.test(priceTrimmed);
-  const canSave = d.overall != null && priceOk;
-  // Drafts don't need a price — but a typed one must still be valid.
+  const canSave = d.overall != null && priceOk && hasPhoto;
+  // Drafts don't need a price or a photo — but a typed price must be valid.
   const canDraft = d.overall != null && (priceTrimmed === '' || priceOk);
 
   if (controlRef) {
@@ -162,6 +166,9 @@ export default function ReviewForm({
       >
         {submitLabel}
       </button>
+      {!hasPhoto && d.overall != null && (
+        <p className="text-center text-xs text-ink/60">Publishing needs a photo — drafts don't.</p>
+      )}
       {draftLabel !== null && (
         <button
           type="button"

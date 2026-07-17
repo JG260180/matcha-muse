@@ -75,7 +75,7 @@ export default function SaveBeforeLeaving({
         </div>
         {!canSave && (
           <p className="pt-3 text-xs text-ink/60">
-            "Save matcha" needs at least the overall stars, a price, and a cafe — drafts just need the stars.
+            "Save matcha" needs the overall stars, a price, a cafe and a photo — drafts just need the stars.
           </p>
         )}
       </div>

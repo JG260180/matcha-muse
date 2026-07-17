@@ -22,27 +22,38 @@ const JPEG_QUALITY = 0.8;
 // downscalePhoto: on ANY render failure the original photo is used unchanged —
 // a photo must never be lost to this step.
 export default function PhotoAdjust({ photo, onDone, onCancel }: Props) {
-  const [url] = useState(() => URL.createObjectURL(photo));
+  const [url, setUrl] = useState<string | null>(null);
   const [natural, setNatural] = useState<Size | null>(null);
   const [frame, setFrame] = useState<Size | null>(null);
   const [view, setView] = useState<CropView>({ zoom: 1, offsetX: 0, offsetY: 0 });
   const [busy, setBusy] = useState(false);
   const frameRef = useRef<HTMLDivElement | null>(null);
   const drag = useRef<{ x: number; y: number; baseX: number; baseY: number } | null>(null);
-  const returnFocusRef = useRef<HTMLElement | null>(null);
   // A crop render can still be in flight when Cancel/Escape unmounts the
   // dialog — a late onDone must not apply a crop the user backed out of.
   const unmounted = useRef(false);
 
+  // Object URL lifecycle lives entirely inside this effect and the flag is
+  // reset in the body: StrictMode runs mount effects twice (mount → cleanup →
+  // mount), and the first version of this code revoked the URL and latched
+  // unmounted=true on that simulated unmount — grey image, dead zoom, and
+  // "Preparing…" forever. Don't regress this.
   useEffect(() => {
-    returnFocusRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    unmounted.current = false;
+    const u = URL.createObjectURL(photo);
+    setUrl(u);
     return () => {
       unmounted.current = true;
-      URL.revokeObjectURL(url);
-      returnFocusRef.current?.focus();
+      URL.revokeObjectURL(u);
     };
-  }, [url]);
+  }, [photo]);
+
+  // Return focus to whatever opened the dialog (StrictMode-safe: capture and
+  // restore are paired within one effect run).
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    return () => opener?.focus();
+  }, []);
 
   useEffect(() => {
     const measure = () => {
@@ -148,7 +159,7 @@ export default function PhotoAdjust({ photo, onDone, onCancel }: Props) {
           className="relative w-full max-w-md touch-none select-none overflow-hidden rounded-2xl bg-ink"
           style={{ aspectRatio: '4 / 3' }}
         >
-          <img
+          {url && <img
             src={url}
             alt="Photo being adjusted"
             draggable={false}
@@ -166,7 +177,7 @@ export default function PhotoAdjust({ photo, onDone, onCancel }: Props) {
                   }
                 : { visibility: 'hidden' }
             }
-          />
+          />}
         </div>
       </div>
 

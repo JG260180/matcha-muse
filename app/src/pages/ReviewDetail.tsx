@@ -114,6 +114,9 @@ export default function ReviewDetail() {
 
   const isDraft = review.status === 'draft';
   const isOwner = ownId != null && review.user_id === ownId;
+  // Publishing requires a photo (owner rule 2026-07-17); "remove" drops it.
+  const editHasPhoto =
+    photoAction.kind === 'replace' || (photoAction.kind === 'keep' && review.photo_path != null);
 
   function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -270,7 +273,7 @@ export default function ReviewDetail() {
             </div>
           ) : (
             <div className="flex h-56 w-full flex-col items-center justify-center gap-3 rounded-2xl bg-matcha-mist text-matcha-deep">
-              <span className="text-sm">Add a photo of your matcha (optional)</span>
+              <span className="px-6 text-center text-sm">Add a photo of your matcha — needed to publish, drafts can skip it</span>
               <label className="cursor-pointer rounded-xl bg-matcha-deep px-5 py-2.5 text-cream">
                 Take a photo
                 <input type="file" accept="image/*" capture="environment" onChange={onPickPhoto} className="hidden" />
@@ -333,6 +336,7 @@ export default function ReviewDetail() {
             <ReviewForm
               onSubmit={onSave}
               controlRef={formRef}
+              hasPhoto={editHasPhoto}
               initial={pendingDraft ?? toDraft(review)}
               submitLabel="Save changes"
               draftLabel={isDraft ? 'Keep as draft' : null}
