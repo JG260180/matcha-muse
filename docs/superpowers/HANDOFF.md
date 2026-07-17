@@ -109,7 +109,10 @@ Six improvements Justina requested on 2026-07-17, built in one autonomous sessio
 (no live Q&A — design decisions follow existing patterns and are recorded in the
 spec). Spec `docs/superpowers/specs/2026-07-17-owner-improvements-design.md`;
 plan `docs/superpowers/plans/2026-07-17-owner-improvements.md` (READ ITS
-AMENDMENTS). State: **170 tests passing, tsc + `npm run build` clean.** Commits
+AMENDMENTS — including the same-day **Round 2** owner-feedback batch: milk
+All-chip model on both views, leave-guard save/draft/delete dialog, drafts can
+skip the cafe until publishing, photo marked optional; spec has the details).
+State: **177 tests passing, tsc + `npm run build` clean.** Commits
 `6d3917c` (docs) → `12121e3`/`d31cb77` (price) → `a59a22b` (date) → `cf9e94b`
 (draft menu/delete) → `b5db479` (journal filters) → `55c59c7` (crop) → `3dfa1a4`
 (review fixes).
