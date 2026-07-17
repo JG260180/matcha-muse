@@ -1,6 +1,6 @@
 # Matcha Muse — Development Playbook
 
-**Written 2026-07-10 after shipping v1, "Near me", and review-detail (view/edit/delete).**
+**Written 2026-07-10 after shipping v1, "Near me", and review-detail (view/edit/delete). Updated 2026-07-17 after the owner-improvements release (dates, draft rules, crop, filters, leave-guard).**
 Purpose: the distilled learnings, decisions, and working recipe from the entire build, so any future development session — with any assistant/model, or a human developer — starts here instead of relearning. Current project *state* lives in `docs/superpowers/HANDOFF.md`; this file is the *how and why*.
 
 ---
@@ -30,10 +30,20 @@ Justina Gardiner (justina@lightspeedconsulting.com.au) — non-technical busines
 - Completed reviews open in **view mode**; editing requires an explicit **Edit** button. Drafts open **directly in edit mode** (their purpose is being finished).
 - Cancel discards edits (drafts: back to journal). Failed saves must **preserve in-progress edits** — losing typed input is unacceptable.
 - Delete = **two taps on the same button** (no browser dialogs): first arms + relabels, second confirms; disarms on blur AND after 5 s (iOS blur is unreliable).
-- The cafe on a review is not editable — delete and re-log.
+- The cafe on a review is not editable — delete and re-log. Exception (2026-07-17): a **cafe-less draft** embeds the cafe picker in its edit screen and gains its cafe on save.
 
-**Filters & sorting (Near me)**
-- Milk filter is an **exclusion model**: all boxes pre-ticked; unticking removes. Null milk is its own **"Unspecified"** bucket — never lump into "Other" (Other = deliberately obscure milks).
+**Drafts vs published — the owner's rules (2026-07-17, settled)**
+- **Drafts are deliberately low-friction:** only the overall stars are required. No price, no cafe, no photo needed. Draft = "capture the moment, finish later".
+- **Publishing ("Save matcha") is strict:** requires stars + valid price + a cafe + **a photo** ("a photo is absolutely compulsory... otherwise it completely ruins the experience"). Enforced in the form gates with visible hints ("Publishing needs a photo — drafts don't."), price also by DB constraint.
+- Drafts can do everything without publishing first: add menu photos, be deleted, adjust their photo, change their date.
+- **Never let navigation lose work:** leaving a half-finished review (back link, header, view tabs) opens a **Save matcha / Save as draft / Don't save-or-Delete / Keep editing** dialog. New reviews say "Don't save"; existing drafts say "Delete this matcha".
+- The review **date is editable** (defaults to today, capped at today). Same-day keeps the original timestamp; a changed day saves as local noon (timezone-safe).
+- **Photo crop/position:** every photo preview has an "Adjust" pill → full-screen drag + zoom-slider dialog, 4:3 frame; re-adjusting always starts from the as-picked original (crops never compound); any render failure silently keeps the original (a photo must never be lost).
+- Anything optional must SAY so in its label — an unmarked field reads as compulsory to her.
+
+**Filters & sorting (Journal + Near me)**
+- Milk filter (2026-07-17, replaced the earlier exclusion model, owner-requested): an explicit **"All" chip first** (like the Serve row), specific milks start **deselected**; tapping milks narrows to just those, All clears. Shared `MilkChips` component on both views; in code an **empty milk set means "all"**. Null milk is its own **"Unspecified"** bucket — never lump into "Other" (Other = deliberately obscure milks).
+- The Journal has the same Serve + Milk chip rows as Near me; they compose with the reviewer chips and the drafts toggle, the stat tiles follow the filtered set, and changing ANY filter resets the drafts-only toggle (otherwise it silently reasserts later — a bug class we hit twice).
 - **Top rated sorts by the cafe's BEST matcha**, not the average (the stack *displays* the average).
 - Multiple reviews at one cafe render as a **playing-card stack** that fans out on tap; one stack open at a time.
 - Static map image now; interactive Google map is the agreed upgrade "once we scale". "Open in Google Maps" covers directions meanwhile.
@@ -53,7 +63,7 @@ Justina Gardiner (justina@lightspeedconsulting.com.au) — non-technical busines
 - Login is email + **password** (Microsoft 365 mail security eats magic-link tokens). Revisit OTP only with custom SMTP.
 - Offline queue covers **new reviews only**; editing/deleting are online-only.
 - Orphaned storage files on rare failure paths are accepted (single-user scale); cleanup is best-effort and must never fail the user action.
-- Parked: interactive map, multi-user accounts, bulk delete, editing drank_at, Google-links tap-target sizing, storage-orphan sweep.
+- Parked: interactive map, multi-user accounts, bulk delete, Google-links tap-target sizing, storage-orphan sweep, pinch-to-zoom in the photo Adjust dialog, menu photos inside the new-review page pre-save. (Editing drank_at: shipped 2026-07-17.)
 
 ## 3. Technical learnings (the traps we hit — with fixes)
 
@@ -86,6 +96,15 @@ Justina Gardiner (justina@lightspeedconsulting.com.au) — non-technical busines
 - A form that seeds `useState(initial)` reads the prop **once at mount** (like `defaultValue`). Do NOT "fix" with an effect syncing state from the prop — when the parent rebuilds `initial` each render, the effect wipes in-progress edits. Preserve failed-save edits via a `pendingDraft` fed back on remount.
 - React Router **reuses a component across `/route/:id` param changes** — reset per-item state in the id-keyed effect.
 - Revoke `URL.createObjectURL` blobs on change/unmount; reset `input.value = ''` after file pick so re-picking the same file fires.
+- **StrictMode runs mount effects twice (mount → cleanup → mount).** Any resource an effect's CLEANUP destroys (revoking an object URL, latching an "unmounted" flag) must be CREATED/RESET in the effect body, never at render or state-init. Violating this caused the worst bug of 2026-07-17: PhotoAdjust showed a grey image, dead zoom, and hung on "Preparing…" forever, because the simulated unmount revoked a render-created URL and latched a flag nothing reset. Pattern: `useEffect(() => { flag.current = false; const u = URL.createObjectURL(x); setUrl(u); return () => { flag.current = true; URL.revokeObjectURL(u); }; }, [x])`.
+- Plain `BrowserRouter` has **no `useBlocker`** (that needs a data router). The shipped navigation-guard is a tiny context (`lib/leaveGuard.tsx`): pages register an interceptor, guarded links call it in `onClick` and `preventDefault()` when it returns true. Re-register every render (ref assignment) so the interceptor never closes over stale state.
+- To let an external dialog submit a form that owns its own state, expose a handle via a plain `controlRef` prop reassigned every render (`ReviewFormHandle`: `requestSubmit(status)`, `canSave`, `canDraft`) — no `forwardRef`/`useImperativeHandle` ceremony needed.
+
+**Testing gotchas (Vitest + Testing Library)**
+- **This machine flakes on parallel test runs** once the suite got big (~24 files): random timeouts in untouched suites (jsdom worker overload + OneDrive). Always run `npx vitest run --no-file-parallelism`. It is NOT a code problem — don't "fix" the tests.
+- Module-level `vi.mock` fns accumulate call counts across tests in a file. The moment more than one test asserts on counts, add `beforeEach(() => vi.clearAllMocks())` (implementations set per-test survive; those set at module scope don't — set them in the render helper).
+- Keep accessible names unique within any one screen: a dialog whose ✕ shared its label with a text button ("Keep editing") broke `getByRole`; multiple filter rows each having an "All" chip requires `within(group)` scoping in tests.
+- React state updates flush **asynchronously** relative to a programmatic `element.click()` from devtools/console — query the DOM in a later tick, not synchronously, before concluding "nothing happened" (cost us a false alarm on the leave-guard).
 
 **Windows / repo environment**
 - Repo lives in OneDrive — occasional slow file ops, otherwise fine. LF→CRLF git warnings are noise.
@@ -112,12 +131,12 @@ Roles split that worked: assistant does all code/terminal/browser-driving; owner
 | Thing | Where |
 |---|---|
 | Live app | https://matcha-muse.pages.dev (Cloudflare Pages, project `matcha-muse`, production branch `main`) |
-| Code | `C:\Users\justi\OneDrive\Documents\MatchaMuse` (app in `app/`); private backup https://github.com/JG260180/matcha-muse |
+| Code | `C:\Users\justi\OneDrive - LightSpeed Consulting\APPS\MatchaMuse` (moved 2026-07-17, was OneDrive\Documents; app in `app/`); private backup https://github.com/JG260180/matcha-muse |
 | Database/auth/storage | Supabase project `matcha-muse`, ref `sodkpgrdoufcicajqoks`, Sydney. Schema+policies: `app/supabase/schema.sql` |
 | Google | Cloud project `matcha-muse-501713`; one referrer-restricted Maps Platform key |
 | Secrets | `app/.env.local` (gitignored, never commit): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_GOOGLE_PLACES_KEY` |
 | Stack | Vite + React 19 + TypeScript + Tailwind 3 + Vitest (globals) + react-router 7 + Supabase JS + vite-plugin-pwa |
-| Checks | from `app/`: `npx vitest run` (53 passing as of this writing) · `npx tsc -b --noEmit` · `npm run build` |
+| Checks | from `app/`: `npx vitest run --no-file-parallelism` (178 passing as of 2026-07-17; the flag is REQUIRED on this machine — see §3) · `npx tsc -b --noEmit` · `npm run build` |
 
 ## 6. Starting a new feature — the short version
 
