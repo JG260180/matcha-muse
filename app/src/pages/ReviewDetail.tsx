@@ -114,7 +114,8 @@ export default function ReviewDetail() {
         taste: draft.taste, sweetness: draft.sweetness, texture: draft.texture,
         temperature: draft.temperature, milk: draft.milk,
         drink_style: draft.drink_style, size: draft.size,
-        price: Number(draft.price), occasions: draft.occasions,
+        price: draft.price.trim() === '' ? null : Number(draft.price),
+        occasions: draft.occasions,
         note: draft.note || null, status: draft.status,
       });
       setEditing(false);
@@ -224,7 +225,7 @@ export default function ReviewDetail() {
           <p className="text-sm text-ink/60">
             {[review.milk, review.temperature, review.drink_style, review.size].filter(Boolean).join(' · ') || 'No details recorded'}
           </p>
-          <p className="text-sm">${Number(review.price).toFixed(2)}</p>
+          {review.price != null && <p className="text-sm">${Number(review.price).toFixed(2)}</p>}
           {review.occasions.length > 0 && (
             <p className="text-sm text-ink/60">
               {OCCASIONS.filter((o) => review.occasions.includes(o.key)).map((o) => o.label).join(' · ')}

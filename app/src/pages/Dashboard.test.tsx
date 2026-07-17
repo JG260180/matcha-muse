@@ -89,6 +89,13 @@ describe('Dashboard review links and drafts filter', () => {
     ).toHaveLength(2);
   });
 
+  it('omits the price on cards when a draft has none', async () => {
+    renderDashboard([makeReview({ status: 'draft', price: null })]);
+    await screen.findAllByRole('link');
+    expect(screen.queryByText(/NaN/)).toBeNull();
+    expect(screen.queryByText(/\$/)).toBeNull();
+  });
+
   it('shows a Directions link when the cafe has location data', async () => {
     const located = {
       ...cafe, latitude: -34.9, longitude: 138.6, google_place_id: 'place123',

@@ -89,3 +89,9 @@ create policy "update own reviews" on reviews
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "delete own reviews" on reviews
   for delete to authenticated using (user_id = auth.uid());
+
+-- Added 2026-07-17 (owner improvements): drafts may be saved without a price.
+-- Completed reviews still require one (also enforced by the app's Save gate).
+alter table reviews alter column price drop not null;
+alter table reviews add constraint price_required_when_complete
+  check (status = 'draft' or price is not null);

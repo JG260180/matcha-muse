@@ -39,7 +39,7 @@ export interface Review {
   milk: Milk | null;
   drink_style: DrinkStyle | null;
   size: Size | null;
-  price: number;
+  price: number | null; // null only while status is 'draft'
   occasions: Occasion[];
   note: string | null;
   status: 'complete' | 'draft';

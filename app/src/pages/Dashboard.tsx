@@ -103,7 +103,7 @@ export default function Dashboard() {
                 <div className="p-3 pb-1">
                   <p className="truncate font-display">{c?.name ?? 'Unknown cafe'}</p>
                   <p className="text-sm text-ink/60">
-                    {Number(r.overall).toFixed(1)} ★ · ${Number(r.price).toFixed(2)}
+                    {Number(r.overall).toFixed(1)} ★{r.price != null ? ` · $${Number(r.price).toFixed(2)}` : ''}
                   </p>
                 </div>
               </Link>
