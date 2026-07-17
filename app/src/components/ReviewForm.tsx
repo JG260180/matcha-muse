@@ -49,6 +49,8 @@ export default function ReviewForm({
   const priceTrimmed = d.price.trim();
   const priceOk = /^\d+(\.\d{1,2})?$/.test(priceTrimmed);
   const canSave = d.overall != null && priceOk;
+  // Drafts don't need a price — but a typed one must still be valid.
+  const canDraft = d.overall != null && (priceTrimmed === '' || priceOk);
 
   function toggleOccasion(key: Occasion, on: boolean) {
     patch({ occasions: on ? [...d.occasions, key] : d.occasions.filter((k) => k !== key) });
@@ -121,7 +123,7 @@ export default function ReviewForm({
       {draftLabel !== null && (
         <button
           type="button"
-          disabled={!canSave}
+          disabled={!canDraft}
           onClick={() => onSubmit({ ...d, price: priceTrimmed, status: 'draft' })}
           className="w-full rounded-xl border border-matcha-deep p-3 text-matcha-deep disabled:opacity-40"
         >

@@ -49,6 +49,32 @@ test('save as draft submits with draft status', async () => {
   );
 });
 
+test('draft can be saved with an empty price', async () => {
+  const onSubmit = vi.fn();
+  render(<ReviewForm onSubmit={onSubmit} />);
+  const draftBtn = screen.getByRole('button', { name: 'Save as draft — finish details later' });
+  expect(draftBtn).toBeDisabled();
+
+  const overall = within(screen.getByRole('group', { name: 'Overall' }));
+  await userEvent.click(overall.getByRole('button', { name: '4 stars' }));
+  expect(draftBtn).toBeEnabled();
+  // Complete save still needs a price
+  expect(screen.getByRole('button', { name: 'Save matcha' })).toBeDisabled();
+
+  await userEvent.click(draftBtn);
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ overall: 4, price: '', status: 'draft' })
+  );
+});
+
+test('nonsense price keeps the draft button disabled too', async () => {
+  render(<ReviewForm onSubmit={vi.fn()} />);
+  const overall = within(screen.getByRole('group', { name: 'Overall' }));
+  await userEvent.click(overall.getByRole('button', { name: '4 stars' }));
+  await userEvent.type(screen.getByLabelText('Price'), 'abc');
+  expect(screen.getByRole('button', { name: 'Save as draft — finish details later' })).toBeDisabled();
+});
+
 const filled: ReviewDraft = {
   overall: 4, taste: 3, sweetness: null, texture: null,
   temperature: 'iced', milk: 'oat', drink_style: 'latte', size: 'M',
