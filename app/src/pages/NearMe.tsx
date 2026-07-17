@@ -7,6 +7,7 @@ import {
 import { staticMapUrl } from '../lib/googleLinks';
 import CafeStack from '../components/CafeStack';
 import MilkChips from '../components/MilkChips';
+import MoreFilters from '../components/MoreFilters';
 import NewFab from '../components/NewFab';
 import BackToJournal from '../components/BackToJournal';
 
@@ -96,21 +97,24 @@ export default function NearMe() {
           </button>
         </div>
 
-        <div className="flex gap-2" role="group" aria-label="Serve">
-          {SERVES.map((s) => (
-            <button
-              key={s}
-              type="button"
-              aria-pressed={serve === s}
-              onClick={() => setServe(s)}
-              className={`rounded-full px-4 py-1.5 text-sm capitalize ${serve === s ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink'}`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-
-        <MilkChips selected={milks} onChange={setMilks} />
+        {/* Serve/milk live behind "More filters", same as the Journal.
+            Sort stays visible — it orders results rather than hiding any. */}
+        <MoreFilters activeCount={(serve !== 'all' ? 1 : 0) + (milks.size > 0 ? 1 : 0)}>
+          <div className="flex gap-2" role="group" aria-label="Serve">
+            {SERVES.map((s) => (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={serve === s}
+                onClick={() => setServe(s)}
+                className={`rounded-full px-4 py-1.5 text-sm capitalize ${serve === s ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink'}`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          <MilkChips selected={milks} onChange={setMilks} />
+        </MoreFilters>
 
         {groups.length === 0 && (
           <p className="py-10 text-center text-ink/60">

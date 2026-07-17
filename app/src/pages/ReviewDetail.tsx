@@ -13,6 +13,7 @@ import ConfirmDelete from '../components/ConfirmDelete';
 import BackToJournal from '../components/BackToJournal';
 import CafeMenu from '../components/CafeMenu';
 import { localDateString, applyDrankAtDate } from '../lib/drankAt';
+import { writeReviewUrl } from '../lib/googleLinks';
 
 function toDraft(r: Review): ReviewDraft {
   const num = (x: number | null) => (x == null ? null : Number(x));
@@ -66,6 +67,9 @@ export default function ReviewDetail() {
   // Leave-guard (2026-07-17): navigating away from a draft edit opens the
   // save/draft/delete dialog instead.
   const [leaveTo, setLeaveTo] = useState<string | null>(null);
+  // Google-review copy confirmation (owner request 2026-07-17 follow-up:
+  // the Review-on-Google path must also exist inside the matcha card).
+  const [noteCopied, setNoteCopied] = useState(false);
   const formRef = useRef<ReviewFormHandle | null>(null);
   const navAfterSave = useRef<string | null>(null);
 
@@ -92,6 +96,7 @@ export default function ReviewDetail() {
     setPendingCafe(null);
     setNeedCafe(false);
     setLeaveTo(null);
+    setNoteCopied(false);
     navAfterSave.current = null;
     Promise.all([
       supabase.from('reviews').select('*, cafe:cafes(*)').eq('id', id).maybeSingle(),
@@ -440,6 +445,37 @@ export default function ReviewDetail() {
             </p>
           )}
           {review.note && <p className="rounded-xl bg-sand/50 p-3 text-sm">{review.note}</p>}
+
+          {/* Only the review's own author sees this — pushing someone else's
+              words into your Google review would be wrong. Same copy-then-open
+              pattern as Near me: clipboard write stays inside the tap gesture,
+              target=_blank keeps the pending promise alive. */}
+          {isOwner && review.cafe?.google_place_id && (
+            <div>
+              <a
+                href={writeReviewUrl(review.cafe.google_place_id)}
+                target="_blank"
+                rel="noreferrer"
+                onClick={async () => {
+                  if (!review.note) return;
+                  try {
+                    await navigator.clipboard.writeText(review.note);
+                    setNoteCopied(true);
+                  } catch {
+                    // Clipboard can fail (permissions); the link still opens.
+                  }
+                }}
+                className="text-sm text-matcha-deep underline"
+              >
+                Review on Google ↗
+              </a>
+              {noteCopied && (
+                <p role="status" className="mt-2 rounded-xl bg-matcha-mist p-3 text-xs text-matcha-deep">
+                  Your note is copied — paste it into the Google review.
+                </p>
+              )}
+            </div>
+          )}
 
           {review.cafe && <CafeMenu cafeId={review.cafe.id} cafeName={review.cafe.name} />}
 

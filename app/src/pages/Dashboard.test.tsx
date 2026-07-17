@@ -150,12 +150,37 @@ describe('Dashboard review links and drafts filter', () => {
     expect(screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'))).toHaveLength(2);
   });
 
+  // Owner feedback 2026-07-17 follow-up: serve/milk collapse behind "More
+  // filters"; while collapsed they keep filtering and the bar shows a count.
+  it('hides serve/milk behind More filters; collapsed filters still apply', async () => {
+    const hot = makeReview({ temperature: 'hot' });
+    const iced = makeReview({ temperature: 'iced' });
+    renderDashboard([hot, iced]);
+    await screen.findAllByRole('link');
+    expect(screen.queryByRole('group', { name: /serve/i })).toBeNull();
+    expect(screen.queryByRole('group', { name: /milk/i })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /more filters/i }));
+    const serve = screen.getByRole('group', { name: /serve/i });
+    expect(screen.getByRole('group', { name: /milk/i })).toBeDefined();
+    fireEvent.click(within(serve).getByRole('button', { name: /^hot$/i }));
+
+    // Collapse again: the hot filter still applies and the bar says so.
+    fireEvent.click(screen.getByRole('button', { name: /more filters/i }));
+    expect(screen.queryByRole('group', { name: /serve/i })).toBeNull();
+    const cards = screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'));
+    expect(cards).toHaveLength(1);
+    expect(cards[0].getAttribute('href')).toBe(`/review/${hot.id}`);
+    expect(screen.getByRole('button', { name: /more filters · 1 on/i })).toBeDefined();
+  });
+
   // 2026-07-17 owner request: journal gets the same serve/milk filters as Near Me.
   it('filters cards by serve', async () => {
     const hot = makeReview({ temperature: 'hot' });
     const iced = makeReview({ temperature: 'iced' });
     renderDashboard([hot, iced]);
-    const serve = await screen.findByRole('group', { name: /serve/i });
+    fireEvent.click(await screen.findByRole('button', { name: /more filters/i }));
+    const serve = screen.getByRole('group', { name: /serve/i });
     fireEvent.click(within(serve).getByRole('button', { name: /^hot$/i }));
     const cards = screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'));
     expect(cards).toHaveLength(1);
@@ -170,7 +195,8 @@ describe('Dashboard review links and drafts filter', () => {
     const oat = makeReview({ milk: 'oat' });
     const none = makeReview({ milk: null });
     renderDashboard([oat, none]);
-    const milk = await screen.findByRole('group', { name: /milk/i });
+    fireEvent.click(await screen.findByRole('button', { name: /more filters/i }));
+    const milk = screen.getByRole('group', { name: /milk/i });
     expect(within(milk).getByRole('button', { name: /^all$/i }).getAttribute('aria-pressed')).toBe('true');
     let cards = screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'));
     expect(cards).toHaveLength(2);
@@ -198,6 +224,7 @@ describe('Dashboard review links and drafts filter', () => {
     const complete = makeReview({ temperature: 'iced' });
     renderDashboard([draft, complete]);
     fireEvent.click(await screen.findByRole('button', { name: /draft.*waiting/i }));
+    fireEvent.click(screen.getByRole('button', { name: /more filters/i }));
     const serve = screen.getByRole('group', { name: /serve/i });
     fireEvent.click(within(serve).getByRole('button', { name: /^iced$/i }));
     // drafts-only must not silently reassert: the iced complete card shows
@@ -216,6 +243,7 @@ describe('Dashboard review links and drafts filter', () => {
     const theirsHot = makeReview({ user_id: 'u2', temperature: 'hot' });
     renderDashboard([mineHot, mineIced, theirsHot], [justina, sam]);
     fireEvent.click(await screen.findByRole('button', { name: 'Justina Gardiner' }));
+    fireEvent.click(screen.getByRole('button', { name: /more filters/i }));
     const serve = screen.getByRole('group', { name: /serve/i });
     fireEvent.click(within(serve).getByRole('button', { name: /^hot$/i }));
     const cards = screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'));
