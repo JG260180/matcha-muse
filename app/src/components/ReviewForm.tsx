@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import StarRating from './StarRating';
 import Chips from './Chips';
+import { todayLocalDate } from '../lib/drankAt';
 import {
   MILKS, DRINK_STYLES, SIZES, TEMPERATURES, OCCASIONS,
   type Milk, type DrinkStyle, type Size, type Temperature, type Occasion,
@@ -19,6 +20,8 @@ export interface ReviewDraft {
   occasions: Occasion[];
   note: string;
   status: 'complete' | 'draft';
+  /** Local YYYY-MM-DD. Optional so queued reviews from older builds still parse. */
+  drankAtDate?: string;
 }
 
 const EMPTY: ReviewDraft = {
@@ -44,7 +47,11 @@ export default function ReviewForm({
   draftLabel = 'Save as draft — finish details later',
   onCancel,
 }: Props) {
-  const [d, setD] = useState(initial);
+  // Lazy init so "today" is read when the form opens, not at module load
+  // (the PWA can stay open across midnight).
+  const [d, setD] = useState(() =>
+    initial.drankAtDate ? initial : { ...initial, drankAtDate: todayLocalDate() }
+  );
   const patch = (p: Partial<ReviewDraft>) => setD((prev) => ({ ...prev, ...p }));
   const priceTrimmed = d.price.trim();
   const priceOk = /^\d+(\.\d{1,2})?$/.test(priceTrimmed);
@@ -73,6 +80,18 @@ export default function ReviewForm({
       <Chips label="Milk" options={MILKS} value={d.milk} onChange={(v) => patch({ milk: v })} />
       <Chips label="Style" options={DRINK_STYLES} value={d.drink_style} onChange={(v) => patch({ drink_style: v })} />
       <Chips label="Size" options={SIZES} value={d.size} onChange={(v) => patch({ size: v })} />
+
+      <label className="block">
+        <span className="text-sm text-ink/70">Date</span>
+        <input
+          type="date"
+          aria-label="Date"
+          value={d.drankAtDate ?? ''}
+          max={todayLocalDate()}
+          onChange={(e) => patch({ drankAtDate: e.target.value })}
+          className="mt-1 w-full rounded-xl border border-sand bg-white p-3"
+        />
+      </label>
 
       <label className="block">
         <span className="text-sm text-ink/70">Price (AUD)</span>

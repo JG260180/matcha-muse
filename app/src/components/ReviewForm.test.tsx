@@ -75,6 +75,31 @@ test('nonsense price keeps the draft button disabled too', async () => {
   expect(screen.getByRole('button', { name: 'Save as draft — finish details later' })).toBeDisabled();
 });
 
+test('date defaults to today and a changed date is submitted', async () => {
+  const onSubmit = vi.fn();
+  render(<ReviewForm onSubmit={onSubmit} />);
+  const date = screen.getByLabelText('Date') as HTMLInputElement;
+  const today = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  expect(date.value).toBe(todayStr);
+  expect(date.max).toBe(todayStr);
+
+  fireEvent.change(date, { target: { value: '2026-07-10' } });
+  const overall = within(screen.getByRole('group', { name: 'Overall' }));
+  await userEvent.click(overall.getByRole('button', { name: '4 stars' }));
+  await userEvent.type(screen.getByLabelText('Price'), '6');
+  await userEvent.click(screen.getByRole('button', { name: 'Save matcha' }));
+  expect(onSubmit).toHaveBeenCalledWith(
+    expect.objectContaining({ drankAtDate: '2026-07-10', status: 'complete' })
+  );
+});
+
+it('pre-fills the date from initial', () => {
+  render(<ReviewForm onSubmit={() => {}} initial={{ ...filled, drankAtDate: '2026-06-20' }} />);
+  expect((screen.getByLabelText('Date') as HTMLInputElement).value).toBe('2026-06-20');
+});
+
 const filled: ReviewDraft = {
   overall: 4, taste: 3, sweetness: null, texture: null,
   temperature: 'iced', milk: 'oat', drink_style: 'latte', size: 'M',

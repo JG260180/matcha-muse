@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import type { CafeChoice } from '../components/CafePicker';
 import type { ReviewDraft } from '../components/ReviewForm';
 import { enqueue, blobToBase64, base64ToBlob, type QueuedReview } from './offlineQueue';
+import { applyDrankAtDate } from './drankAt';
 import type { Review } from './types';
 
 export async function ensureCafe(choice: CafeChoice): Promise<string> {
@@ -50,7 +51,7 @@ export async function saveReview(
     user_id: userData.user.id,
     cafe_id: cafeId,
     photo_path: photoPath,
-    drank_at: drankAt.toISOString(),
+    drank_at: applyDrankAtDate(drankAt.toISOString(), draft.drankAtDate),
     overall: draft.overall,
     taste: draft.taste,
     sweetness: draft.sweetness,
@@ -155,6 +156,7 @@ export async function updateReview(
     .from('reviews')
     .update({
       photo_path: photoPath,
+      drank_at: applyDrankAtDate(review.drank_at, draft.drankAtDate),
       overall: draft.overall,
       taste: draft.taste,
       sweetness: draft.sweetness,

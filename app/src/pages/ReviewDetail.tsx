@@ -8,6 +8,7 @@ import SignedImage from '../components/SignedImage';
 import ConfirmDelete from '../components/ConfirmDelete';
 import BackToJournal from '../components/BackToJournal';
 import CafeMenu from '../components/CafeMenu';
+import { localDateString, applyDrankAtDate } from '../lib/drankAt';
 
 function toDraft(r: Review): ReviewDraft {
   const num = (x: number | null) => (x == null ? null : Number(x));
@@ -17,6 +18,7 @@ function toDraft(r: Review): ReviewDraft {
     temperature: r.temperature, milk: r.milk, drink_style: r.drink_style, size: r.size,
     price: r.price == null ? '' : String(Number(r.price)),
     occasions: r.occasions ?? [], note: r.note ?? '', status: r.status,
+    drankAtDate: localDateString(r.drank_at),
   };
 }
 
@@ -108,6 +110,7 @@ export default function ReviewDetail() {
       setReview({
         ...review,
         photo_path: newPath,
+        drank_at: applyDrankAtDate(review.drank_at, draft.drankAtDate),
         // overall is guaranteed non-null by ReviewForm's canSave gate; the
         // fallback only satisfies the Review type.
         overall: draft.overall ?? review.overall,
