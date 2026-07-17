@@ -40,6 +40,10 @@ Justina Gardiner (justina@lightspeedconsulting.com.au) — non-technical busines
 - The review **date is editable** (defaults to today, capped at today). Same-day keeps the original timestamp; a changed day saves as local noon (timezone-safe).
 - **Photo crop/position:** every photo preview has an "Adjust" pill → full-screen drag + zoom-slider dialog, 4:3 frame; re-adjusting always starts from the as-picked original (crops never compound); any render failure silently keeps the original (a photo must never be lost).
 - Anything optional must SAY so in its label — an unmarked field reads as compulsory to her.
+- **"Use photo" IS the save** when adjusting a photo that's already on a saved matcha (2026-07-17 follow-up: "they should not have to also press Save Changes - it's a sloppy UX"). The crop uploads and commits immediately; other in-progress form edits stay pending. A newly picked (not-yet-saved) photo still saves with the rest of the form. On save failure the crop becomes a pending replace (never lost) with copy telling her Save changes will retry.
+- **Journal cards are the 2-column GRID — settled, owner-corrected.** A 2026-07-17 change to full-width horizontal journal cards was explicitly reverted ("IN THE JOURNAL VIEW, the card should remain the same as before"). The **horizontal card belongs to Near me**: portrait photo left (fixed-width column, full card height, centre-cropped from the adjusted 4:3 image), details filling the rest, Google links row beneath.
+- **Review on Google lives INSIDE the matcha card too** (view mode), strictly **author-only** — never show it on someone else's review. Same pattern as Near me: copy the note in the tap gesture, open the writereview deep link, show the "note is copied" confirmation.
+- **Serve + Milk filter rows collapse behind a "More filters" accordion** on BOTH Journal and Near me (collapsed by default — they ate too much screen). Filters keep applying while collapsed and the bar reports it ("More filters · 2 on") so a short list is never a mystery. Reviewer chips, drafts notice, and Near me's sort chips stay visible (sort orders, it doesn't hide).
 
 **Filters & sorting (Journal + Near me)**
 - Milk filter (2026-07-17, replaced the earlier exclusion model, owner-requested): an explicit **"All" chip first** (like the Serve row), specific milks start **deselected**; tapping milks narrows to just those, All clears. Shared `MilkChips` component on both views; in code an **empty milk set means "all"**. Null milk is its own **"Unspecified"** bucket — never lump into "Other" (Other = deliberately obscure milks).
@@ -80,6 +84,9 @@ Justina Gardiner (justina@lightspeedconsulting.com.au) — non-technical busines
 - `supabase-js` storage methods **don't throw**; they resolve `{ error }`. A try/catch around them is dead code — destructure and inspect (at least `console.warn`).
 - **Audit RLS policies for every verb you use.** The photos bucket had select+insert but no **delete** — so every cleanup silently failed, forever, with zero user-visible symptoms. Reviews caught it; on-device testing never would have. Policy lives in `app/supabase/schema.sql` (keep it in sync with what's applied live).
 - New-style `sb_publishable_...` key ≡ anon key. Don't "fix" it.
+- **Signed URLs defeat the browser cache if minted per mount** — every `createSignedUrl` call yields a different token, so identical photos re-download on every visit, and N images = N round-trips before the first byte. Fix shipped 2026-07-17 (`lib/signedUrls.ts`): same-tick requests batch into ONE `createSignedUrls` call (all of a render commit's effects share a task, so one screen = one request) and results are cached 45 min (signed for 60). Failures are NOT cached (later mounts retry); `SignedImage` re-mints once on `<img>` error (expired token).
+- **Thumbnails convention:** every review-photo upload also stores a 640px/0.7-quality copy at `<path minus ext>.thumb.jpg` (`thumbPath()` in signedUrls). Cards pass `thumb` to `SignedImage`; missing thumbs (pre-2026-07-17 photos) fall back to the full image automatically — no backfill required, photos gain thumbs when next replaced/adjusted. Thumb upload/cleanup is best-effort and must never fail a save/delete. `cleanupPhoto()` removes both files.
+- Journal/Near-me images use `loading="lazy" decoding="async"` — offscreen cards don't fetch or decode until scrolled near.
 - Owner applies SQL herself via the dashboard SQL editor (paste + Run). Automating the editor is fragile (Monaco freezes on large typed input; clipboard-paste recipe in HANDOFF).
 
 **Cloudflare Pages**
@@ -100,11 +107,18 @@ Justina Gardiner (justina@lightspeedconsulting.com.au) — non-technical busines
 - Plain `BrowserRouter` has **no `useBlocker`** (that needs a data router). The shipped navigation-guard is a tiny context (`lib/leaveGuard.tsx`): pages register an interceptor, guarded links call it in `onClick` and `preventDefault()` when it returns true. Re-register every render (ref assignment) so the interceptor never closes over stale state.
 - To let an external dialog submit a form that owns its own state, expose a handle via a plain `controlRef` prop reassigned every render (`ReviewFormHandle`: `requestSubmit(status)`, `canSave`, `canDraft`) — no `forwardRef`/`useImperativeHandle` ceremony needed.
 
+**Remote (cloud) Claude sessions — what they can and can't do (learned 2026-07-17)**
+- Cloud sessions clone the repo fresh: **no `.env.local`, no wrangler login** → they can build/test but **CANNOT deploy** (`wrangler whoami` = not authenticated, and even an authenticated deploy would ship a bundle with missing VITE_ keys). Deploys happen from Justina's machine (wrangler OAuth + real env), or set up a Cloudflare API token + the three VITE_ vars as environment secrets in the Claude environment first.
+- Tests need dummy env to run in a clean container: `VITE_SUPABASE_URL=https://example.supabase.co VITE_SUPABASE_ANON_KEY=dummy npx vitest run --no-file-parallelism` (real supabase.ts throws at import otherwise; on her machine `.env.local` covers it).
+- To show the owner unreleased UI, publish a **visual mock-up artifact** (sample data, faithful palette/layout) — she can't browse a branch, and the real app can't run without secrets. Worked well; she reviews it on her phone via the link.
+
 **Testing gotchas (Vitest + Testing Library)**
 - **This machine flakes on parallel test runs** once the suite got big (~24 files): random timeouts in untouched suites (jsdom worker overload + OneDrive). Always run `npx vitest run --no-file-parallelism`. It is NOT a code problem — don't "fix" the tests.
 - Module-level `vi.mock` fns accumulate call counts across tests in a file. The moment more than one test asserts on counts, add `beforeEach(() => vi.clearAllMocks())` (implementations set per-test survive; those set at module scope don't — set them in the render helper).
 - Keep accessible names unique within any one screen: a dialog whose ✕ shared its label with a text button ("Keep editing") broke `getByRole`; multiple filter rows each having an "All" chip requires `within(group)` scoping in tests.
 - React state updates flush **asynchronously** relative to a programmatic `element.click()` from devtools/console — query the DOM in a later tick, not synchronously, before concluding "nothing happened" (cost us a false alarm on the leave-guard).
+- jsdom doesn't implement `img.loading` as a property — assert `getAttribute('loading')` instead.
+- A whole-card tap target with other links inside it: stretched-link pattern (`<Link className="absolute inset-0">` over static content, inner links `relative z-10`). Used by the (reverted) journal horizontal card; kept here as the recipe if needed again.
 
 **Windows / repo environment**
 - Repo lives in OneDrive — occasional slow file ops, otherwise fine. LF→CRLF git warnings are noise.
@@ -136,7 +150,7 @@ Roles split that worked: assistant does all code/terminal/browser-driving; owner
 | Google | Cloud project `matcha-muse-501713`; one referrer-restricted Maps Platform key |
 | Secrets | `app/.env.local` (gitignored, never commit): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_GOOGLE_PLACES_KEY` |
 | Stack | Vite + React 19 + TypeScript + Tailwind 3 + Vitest (globals) + react-router 7 + Supabase JS + vite-plugin-pwa |
-| Checks | from `app/`: `npx vitest run --no-file-parallelism` (178 passing as of 2026-07-17; the flag is REQUIRED on this machine — see §3) · `npx tsc -b --noEmit` · `npm run build` |
+| Checks | from `app/`: `npx vitest run --no-file-parallelism` (202 passing as of the 2026-07-17 follow-up batch; the flag is REQUIRED on this machine — see §3) · `npx tsc -b --noEmit` · `npm run build` |
 
 ## 6. Starting a new feature — the short version
 

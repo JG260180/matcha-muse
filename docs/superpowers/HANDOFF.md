@@ -164,6 +164,59 @@ journal filters; (3) merge `feature/owner-improvements` → `main`, push, deploy
 matcha-muse --branch main --commit-dirty=true` from `app/`). Deploy was NOT
 run this session (owner not present).
 
+### Image performance + UX follow-up batch (2026-07-17, remote/cloud session) — CODE COMPLETE on `claude/matcha-muse-image-lag-57rgbl`, ⚠️ NOT DEPLOYED
+
+Owner-reported: image lag at 10 matchas + blank black screen when repositioning
+an uploaded photo, then three UX follow-ups. All built and owner-approved via a
+visual mock-up artifact (she said "Deploy"), but **this cloud session cannot
+deploy** — no wrangler auth and no `.env.local` (see playbook §3 "Remote
+sessions"). State: **202 tests passing**, tsc + `npm run build` clean (built
+with dummy env here; real build needs her machine's `.env.local`).
+
+What's in the branch (commits `39d9418` → `7351fce` → `15c2ebd` → `b98235f` → docs):
+
+1. **Signed-URL batching + caching** (`lib/signedUrls.ts` + `SignedImage`):
+   one `createSignedUrls` request per screen instead of one per image, URLs
+   cached 45 min so the browser's HTTP cache finally works; `loading="lazy"
+   decoding="async"`; one re-mint on img error. Fixes the journal lag.
+2. **Thumbnails**: every review-photo upload also stores `…thumb.jpg` (640px);
+   journal + Near me cards load thumbs (~10x fewer bytes), old photos fall
+   back to full automatically. Scales to 20+ matchas / multiple users.
+3. **PhotoAdjust**: visible "Loading photo…" instead of the blank black
+   screen; decode-failure message; repeat Adjusts reuse the downloaded
+   original (no re-download).
+4. **"Use photo" commits immediately** on an already-saved photo
+   (`replaceReviewPhoto` in api.ts) — no second Save changes. Failure keeps
+   the crop as a pending replace + explanatory copy.
+5. **Review on Google inside the matcha card** — view mode, **author-only**
+   (`isOwner && cafe.google_place_id`), copies note then opens deep link.
+6. **Near me cafe card is horizontal** (portrait photo left, details right).
+   **Journal cards stay the 2-col grid — owner explicitly corrected an
+   earlier wrong read; do not change them again.**
+7. **"More filters" accordion** (`components/MoreFilters.tsx`) hides Serve +
+   Milk rows on Journal AND Near me, collapsed by default, shows "· N on".
+
+Preview mock-up shown to owner (approved): claude.ai artifact
+"Matcha Muse — preview of the new changes".
+
+**TO DEPLOY (next session on Justina's machine):**
+1. `git fetch origin claude/matcha-muse-image-lag-57rgbl` and merge it into
+   `main` (should fast-forward or merge cleanly), push `main`.
+2. From `app/`: `npx vitest run --no-file-parallelism` (expect 202),
+   `npm run build`, then `npx wrangler pages deploy dist --project-name
+   matcha-muse --branch main --commit-dirty=true`. Verify the live bundle
+   hash before telling her to test.
+3. No DB/schema/policy work needed — thumbs live in the existing `photos`
+   bucket under the same `reviews/` prefix (insert+delete policies cover it).
+4. Her on-device checks: journal loads fast + unchanged look; Near me
+   horizontal cards; More filters opens/closes; Adjust an existing photo →
+   "Use photo" saves alone; Review on Google inside her own matcha copies
+   the note; (still pending from last time) portrait-photo EXIF spot-check.
+5. Optionally offer: environment secrets (Cloudflare API token + 3 VITE_
+   vars) in the Claude cloud environment so future remote sessions can
+   deploy; and a one-off thumbnail backfill for the 10 existing photos
+   (not required — fallback covers them).
+
 ### Task 14 playbook (the only remaining work)
 
 Follow the plan's Task 14 steps AND its amendment notes (Step 4b photo-downscale; iPhone checklist item 8 about upright photos). Sequence:
