@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Profile, Review, Temperature } from '../lib/types';
-import { MILK_BUCKETS, milkBucket, type MilkBucket } from '../lib/nearMe';
+import { milkBucket, type MilkBucket } from '../lib/nearMe';
 import { initialsFrom } from '../lib/profile';
+import MilkChips from '../components/MilkChips';
 import { directionsUrl } from '../lib/googleLinks';
 import SignedImage from '../components/SignedImage';
 import NewFab from '../components/NewFab';
@@ -17,8 +18,9 @@ export default function Dashboard() {
   const [showDraftsOnly, setShowDraftsOnly] = useState(false);
   const [reviewer, setReviewer] = useState<string>('all');
   // 2026-07-17: same serve/milk filters as Near Me, composing with the above.
+  // milks: empty set = All (the All-chip model).
   const [serve, setServe] = useState<Temperature | 'all'>('all');
-  const [milks, setMilks] = useState<ReadonlySet<MilkBucket>>(new Set(MILK_BUCKETS));
+  const [milks, setMilks] = useState<ReadonlySet<MilkBucket>>(new Set());
 
   useEffect(() => {
     Promise.all([
@@ -44,17 +46,13 @@ export default function Dashboard() {
     xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(1) : '–';
   const byReviewer = reviewer === 'all' ? reviews : reviews.filter((r) => r.user_id === reviewer);
   const filtered = byReviewer.filter(
-    (r) => (serve === 'all' || r.temperature === serve) && milks.has(milkBucket(r))
+    (r) =>
+      (serve === 'all' || r.temperature === serve) &&
+      (milks.size === 0 || milks.has(milkBucket(r)))
   );
   const cafeCount = new Set(filtered.map((r) => r.cafe_id).filter(Boolean)).size;
   const drafts = filtered.filter((r) => r.status === 'draft');
   const visible = showDraftsOnly && drafts.length > 0 ? drafts : filtered;
-
-  function toggleMilk(m: MilkBucket) {
-    const next = new Set(milks);
-    if (next.has(m)) next.delete(m); else next.add(m);
-    setMilks(next);
-  }
 
   return (
     <div className="px-6 pb-24">
@@ -97,18 +95,8 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Milk">
-        {MILK_BUCKETS.map((m) => (
-          <button
-            key={m}
-            type="button"
-            aria-pressed={milks.has(m)}
-            onClick={() => { toggleMilk(m); setShowDraftsOnly(false); }}
-            className={`rounded-full px-3 py-1.5 text-sm capitalize ${milks.has(m) ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink line-through'}`}
-          >
-            {m}
-          </button>
-        ))}
+      <div className="mb-3">
+        <MilkChips selected={milks} onChange={(s) => { setMilks(s); setShowDraftsOnly(false); }} />
       </div>
 
       {drafts.length > 0 && (

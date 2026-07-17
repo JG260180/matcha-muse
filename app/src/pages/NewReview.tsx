@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import CafePicker, { type CafeChoice } from '../components/CafePicker';
-import ReviewForm, { type ReviewDraft } from '../components/ReviewForm';
+import ReviewForm, { type ReviewDraft, type ReviewFormHandle } from '../components/ReviewForm';
 import BackToJournal from '../components/BackToJournal';
 import PhotoAdjust from '../components/PhotoAdjust';
+import SaveBeforeLeaving from '../components/SaveBeforeLeaving';
+import { useLeaveGuard } from '../lib/leaveGuard';
 import { saveReviewOrQueue } from '../lib/api';
 
 export default function NewReview() {
@@ -18,6 +20,15 @@ export default function NewReview() {
   const [saving, setSaving] = useState(false);
   const [queued, setQueued] = useState(false);
   const [error, setError] = useState(false);
+  const [needCafe, setNeedCafe] = useState(false);
+  // Leave-guard (owner request 2026-07-17): navigating away mid-review opens
+  // the save/draft/discard dialog instead.
+  const [leaveTo, setLeaveTo] = useState<string | null>(null);
+  const formRef = useRef<ReviewFormHandle | null>(null);
+  const navAfterSave = useRef('/');
+
+  const dirty = (choice != null || photo != null) && !queued && !saving;
+  useLeaveGuard(dirty ? (to) => { setLeaveTo(to); return true; } : null);
 
   function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -45,11 +56,17 @@ export default function NewReview() {
 
   async function onSubmit(draft: ReviewDraft) {
     if (!choice) return;
+    // Publishing needs a real cafe; skipped-cafe reviews stay drafts.
+    if (draft.status === 'complete' && choice.kind === 'none') {
+      setNeedCafe(true);
+      return;
+    }
+    setNeedCafe(false);
     setSaving(true);
     try {
       const result = await saveReviewOrQueue(choice, draft, photo);
       if (result === 'queued') setQueued(true);
-      else navigate('/');
+      else navigate(navAfterSave.current);
     } catch {
       setError(true);
       setSaving(false);
@@ -91,7 +108,7 @@ export default function NewReview() {
           </div>
         ) : (
           <div className="flex h-56 w-full flex-col items-center justify-center gap-3 rounded-2xl bg-matcha-mist text-matcha-deep">
-            <span className="text-sm">Add a photo of your matcha</span>
+            <span className="text-sm">Add a photo of your matcha (optional)</span>
             <label className="cursor-pointer rounded-xl bg-matcha-deep px-5 py-2.5 text-cream">
               Take a photo
               <input type="file" accept="image/*" capture="environment" onChange={onPhoto} className="hidden" />
@@ -117,17 +134,50 @@ export default function NewReview() {
       )}
 
       {!choice ? (
-        <CafePicker onSelect={setChoice} />
+        <CafePicker onSelect={setChoice} onSkip={() => setChoice({ kind: 'none' })} />
       ) : (
         <>
           <p className="px-6 pb-2 text-sm text-ink/60">
-            {choice.kind === 'candidate' ? choice.candidate.name : choice.name}
+            {choice.kind === 'candidate'
+              ? choice.candidate.name
+              : choice.kind === 'manual'
+                ? choice.name
+                : 'No cafe yet — add it when you finish the draft'}
             {' · '}
-            <button type="button" onClick={() => setChoice(null)} className="underline">change cafe</button>
+            <button type="button" onClick={() => { setChoice(null); setNeedCafe(false); }} className="underline">
+              {choice.kind === 'none' ? 'pick the cafe' : 'change cafe'}
+            </button>
           </p>
-          {saving ? <p className="px-6 text-ink/60">Saving…</p> : <ReviewForm onSubmit={onSubmit} />}
+          {saving ? (
+            <p className="px-6 text-ink/60">Saving…</p>
+          ) : (
+            <ReviewForm onSubmit={onSubmit} controlRef={formRef} />
+          )}
+          {needCafe && (
+            <p className="px-6 pt-2 text-sm text-red-700">Add the cafe before publishing — or save it as a draft.</p>
+          )}
           {error && <p className="px-6 pt-2 text-sm text-red-700">Couldn't save. Check your connection and try again.</p>}
         </>
+      )}
+
+      {leaveTo != null && (
+        <SaveBeforeLeaving
+          canSave={(formRef.current?.canSave ?? false) && choice != null && choice.kind !== 'none'}
+          canDraft={(formRef.current?.canDraft ?? false) && choice != null}
+          onSave={() => {
+            navAfterSave.current = leaveTo;
+            setLeaveTo(null);
+            formRef.current?.requestSubmit('complete');
+          }}
+          onDraft={() => {
+            navAfterSave.current = leaveTo;
+            setLeaveTo(null);
+            formRef.current?.requestSubmit('draft');
+          }}
+          onDiscard={() => navigate(leaveTo)}
+          onStay={() => setLeaveTo(null)}
+          discardLabel="Don't save"
+        />
       )}
     </div>
   );

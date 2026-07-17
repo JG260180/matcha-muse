@@ -99,6 +99,32 @@ ReviewDetail draft delete/menu-in-edit, PhotoAdjust). Existing suites updated
 where `ReviewDraft`/price types shift. `tsc -b --noEmit` and `npm run build`
 must stay clean.
 
+## Round 2 (same day) — owner test feedback
+
+Justina tested round 1 (partly against the live site — items she reported as
+"missing" were confirmed present on the dev build) and asked for four changes:
+
+1. **Milk filter model**: an explicit **All** chip first (like Serve), specific
+   milks start deselected; picking milks narrows to them, All clears. Applied
+   to BOTH Journal and Near me via a shared `MilkChips` component; an empty
+   milk set in `NearMeFilters` now means "all milks".
+2. **Leave-warning**: navigating away mid-review (back link, header title,
+   Journal/Near me tabs) opens a **Save matcha / Save as draft / Delete /
+   Keep editing** dialog (`SaveBeforeLeaving`), driven by a tiny
+   `LeaveGuardProvider` context (plain BrowserRouter has no useBlocker) and a
+   `ReviewFormHandle` (`controlRef`) that lets the dialog submit the form from
+   outside. Guards NewReview (anything entered) and draft edits on
+   ReviewDetail. Discard = "Don't save" on a new review, "Delete this matcha"
+   on an existing draft.
+3. **Cafe-optional drafts**: CafePicker gains "Skip for now — add the cafe
+   when you finish the draft" (`CafeChoice { kind: 'none' }`, `cafe_id` null —
+   the column was always nullable). Publishing still requires a cafe: both
+   save paths block with "Add the cafe before publishing" until one is picked;
+   a cafe-less draft's edit screen embeds CafePicker and `updateReview` gains
+   an optional `cafeChoice` applied on save (then refetches the joined row).
+4. **Photo block labelled "(optional)"** — it never was compulsory, but read
+   as if it were.
+
 ## Out of scope (parked)
 
 - Menu section inside NewReview before any save (needs early cafe creation +

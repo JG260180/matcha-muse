@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, NavLink } from 'react-router-dom';
+import { LeaveGuardProvider, useGuardedClick } from './lib/leaveGuard';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { flush } from './lib/offlineQueue';
@@ -72,35 +73,47 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-cream text-ink">
-        <header className="px-6 pt-8 pb-2">
-          <h1 className="font-display text-2xl">
-            <Link to="/">Matcha Muse</Link>
-          </h1>
-          <nav className="mt-2 flex gap-2" aria-label="View">
-            {[{ to: '/', label: 'Journal' }, { to: '/near', label: 'Near me' }].map((l) => (
-              <NavLink
-                key={l.to}
-                to={l.to}
-                end={l.to === '/'}
-                className={({ isActive }) =>
-                  `rounded-full px-4 py-1.5 text-sm ${isActive ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink'}`
-                }
-              >
-                {l.label}
-              </NavLink>
-            ))}
-          </nav>
-        </header>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/new" element={<NewReview />} />
-          <Route path="/near" element={<NearMe />} />
-          <Route path="/review/:id" element={<ReviewDetail />} />
-          <Route path="/reviewers" element={<Reviewers />} />
-          <Route path="/reviewer/:id" element={<ReviewerProfile />} />
-        </Routes>
-      </div>
+      <LeaveGuardProvider>
+        <Shell />
+      </LeaveGuardProvider>
     </BrowserRouter>
+  );
+}
+
+// Split out so it can consume the leave-guard context: header navigation must
+// respect a half-finished review (owner request 2026-07-17).
+function Shell() {
+  const guarded = useGuardedClick();
+  return (
+    <div className="min-h-screen bg-cream text-ink">
+      <header className="px-6 pt-8 pb-2">
+        <h1 className="font-display text-2xl">
+          <Link to="/" onClick={guarded('/')}>Matcha Muse</Link>
+        </h1>
+        <nav className="mt-2 flex gap-2" aria-label="View">
+          {[{ to: '/', label: 'Journal' }, { to: '/near', label: 'Near me' }].map((l) => (
+            <NavLink
+              key={l.to}
+              to={l.to}
+              end={l.to === '/'}
+              onClick={guarded(l.to)}
+              className={({ isActive }) =>
+                `rounded-full px-4 py-1.5 text-sm ${isActive ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink'}`
+              }
+            >
+              {l.label}
+            </NavLink>
+          ))}
+        </nav>
+      </header>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/new" element={<NewReview />} />
+        <Route path="/near" element={<NearMe />} />
+        <Route path="/review/:id" element={<ReviewDetail />} />
+        <Route path="/reviewers" element={<Reviewers />} />
+        <Route path="/reviewer/:id" element={<ReviewerProfile />} />
+      </Routes>
+    </div>
   );
 }

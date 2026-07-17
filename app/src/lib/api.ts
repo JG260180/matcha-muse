@@ -5,7 +5,8 @@ import { enqueue, blobToBase64, base64ToBlob, type QueuedReview } from './offlin
 import { applyDrankAtDate } from './drankAt';
 import type { Review } from './types';
 
-export async function ensureCafe(choice: CafeChoice): Promise<string> {
+export async function ensureCafe(choice: CafeChoice): Promise<string | null> {
+  if (choice.kind === 'none') return null; // cafe-less draft (2026-07-17)
   if (choice.kind === 'candidate') {
     const c = choice.candidate;
     const { data: existing } = await supabase
@@ -136,11 +137,14 @@ export type PhotoAction =
 // Applies an edit to an existing review. Returns the review's final photo_path.
 // Old-photo cleanup is best-effort: an orphaned file is accepted; a failed
 // cleanup must never fail the save (same stance as v1's upload-before-insert).
+// cafeChoice (2026-07-17): a cafe-less draft gains its cafe on save.
 export async function updateReview(
   review: Review,
   draft: ReviewDraft,
-  photo: PhotoAction = { kind: 'keep' }
+  photo: PhotoAction = { kind: 'keep' },
+  cafeChoice?: CafeChoice
 ): Promise<string | null> {
+  const cafeId = cafeChoice ? await ensureCafe(cafeChoice) : undefined;
   let photoPath = review.photo_path;
   if (photo.kind === 'replace') {
     const small = await downscalePhoto(photo.blob);
@@ -155,6 +159,7 @@ export async function updateReview(
   const { error } = await supabase
     .from('reviews')
     .update({
+      ...(cafeId !== undefined ? { cafe_id: cafeId } : {}),
       photo_path: photoPath,
       drank_at: applyDrankAtDate(review.drank_at, draft.drankAtDate),
       overall: draft.overall,

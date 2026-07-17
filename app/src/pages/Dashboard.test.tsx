@@ -145,7 +145,8 @@ describe('Dashboard review links and drafts filter', () => {
     expect(screen.getAllByText('1')).toHaveLength(2);
     expect(screen.getByText('2.0')).toBeDefined();
 
-    fireEvent.click(screen.getByRole('button', { name: 'All' }));
+    // Scoped: the Milk row now has an "All" chip of its own
+    fireEvent.click(within(screen.getByRole('group', { name: /reviewer/i })).getByRole('button', { name: 'All' }));
     expect(screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'))).toHaveLength(2);
   });
 
@@ -163,20 +164,33 @@ describe('Dashboard review links and drafts filter', () => {
     expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('filters cards by milk bucket, with unspecified for none', async () => {
+  // 2026-07-17 owner feedback: milk row starts on "All" with specific milks
+  // deselected; picking milks narrows, All widens again.
+  it('milk chips: All by default, selecting narrows, All widens again', async () => {
     const oat = makeReview({ milk: 'oat' });
     const none = makeReview({ milk: null });
     renderDashboard([oat, none]);
     const milk = await screen.findByRole('group', { name: /milk/i });
-    fireEvent.click(within(milk).getByRole('button', { name: /unspecified/i })); // exclude unspecified
+    expect(within(milk).getByRole('button', { name: /^all$/i }).getAttribute('aria-pressed')).toBe('true');
     let cards = screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'));
+    expect(cards).toHaveLength(2);
+
+    fireEvent.click(within(milk).getByRole('button', { name: /^oat$/i }));
+    cards = screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'));
     expect(cards).toHaveLength(1);
     expect(cards[0].getAttribute('href')).toBe(`/review/${oat.id}`);
 
-    fireEvent.click(within(milk).getByRole('button', { name: /^oat$/i })); // exclude oat too
-    cards = screen.queryAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'));
-    expect(cards).toHaveLength(0);
+    fireEvent.click(within(milk).getByRole('button', { name: /coconut/i })); // oat + coconut, none is neither
+    fireEvent.click(within(milk).getByRole('button', { name: /^oat$/i })); // deselect oat → coconut only
+    expect(
+      screen.queryAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'))
+    ).toHaveLength(0);
     expect(screen.getByText(/No matchas match/)).toBeDefined();
+
+    fireEvent.click(within(milk).getByRole('button', { name: /^all$/i }));
+    expect(
+      screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'))
+    ).toHaveLength(2);
   });
 
   it('resets the drafts-only toggle when a serve/milk filter changes', async () => {
@@ -235,7 +249,7 @@ describe('Dashboard review links and drafts filter', () => {
     expect(samCards[0].getAttribute('href')).toBe(`/review/${theirs.id}`);
 
     // Back to All: every card visible — drafts-only did not silently reassert
-    fireEvent.click(screen.getByRole('button', { name: 'All' }));
+    fireEvent.click(within(screen.getByRole('group', { name: /reviewer/i })).getByRole('button', { name: 'All' }));
     expect(
       screen.getAllByRole('link').filter((l) => l.getAttribute('href')?.startsWith('/review/'))
     ).toHaveLength(3);

@@ -1,7 +1,7 @@
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
-import ReviewForm, { type ReviewDraft } from './ReviewForm';
+import ReviewForm, { type ReviewDraft, type ReviewFormHandle } from './ReviewForm';
 
 test('save is disabled until overall and price are set, then submits', async () => {
   const onSubmit = vi.fn();
@@ -93,6 +93,23 @@ test('date defaults to today and a changed date is submitted', async () => {
   expect(onSubmit).toHaveBeenCalledWith(
     expect.objectContaining({ drankAtDate: '2026-07-10', status: 'complete' })
   );
+});
+
+test('controlRef drives the form from outside (leave-guard dialog)', async () => {
+  const onSubmit = vi.fn();
+  const ref = { current: null as ReviewFormHandle | null };
+  render(<ReviewForm onSubmit={onSubmit} controlRef={ref} />);
+  expect(ref.current!.canDraft).toBe(false);
+
+  const overall = within(screen.getByRole('group', { name: 'Overall' }));
+  await userEvent.click(overall.getByRole('button', { name: '4 stars' }));
+  expect(ref.current!.canDraft).toBe(true);
+  expect(ref.current!.canSave).toBe(false); // no price yet
+  expect(ref.current!.requestSubmit('complete')).toBe(false);
+  expect(onSubmit).not.toHaveBeenCalled();
+
+  expect(ref.current!.requestSubmit('draft')).toBe(true);
+  expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ overall: 4, status: 'draft' }));
 });
 
 it('pre-fills the date from initial', () => {

@@ -26,6 +26,7 @@ export const MILK_BUCKETS: readonly MilkBucket[] = [
 
 export interface NearMeFilters {
   serve: Temperature | 'all';
+  /** Milks to show; an EMPTY set means "all milks" (2026-07-17 All-chip model). */
   milks: ReadonlySet<MilkBucket>;
 }
 
@@ -51,7 +52,7 @@ export function groupReviews(
       r.status === 'complete' &&
       r.cafe != null &&
       (filters.serve === 'all' || r.temperature === filters.serve) &&
-      filters.milks.has(milkBucket(r))
+      (filters.milks.size === 0 || filters.milks.has(milkBucket(r)))
   );
 
   const byCafe = new Map<string, Review[]>();

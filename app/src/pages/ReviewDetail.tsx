@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { updateReview, deleteReview, type PhotoAction } from '../lib/api';
 import { OCCASIONS, type Review } from '../lib/types';
-import ReviewForm, { type ReviewDraft } from '../components/ReviewForm';
+import ReviewForm, { type ReviewDraft, type ReviewFormHandle } from '../components/ReviewForm';
+import CafePicker, { type CafeChoice } from '../components/CafePicker';
+import SaveBeforeLeaving from '../components/SaveBeforeLeaving';
+import { useLeaveGuard } from '../lib/leaveGuard';
 import PhotoAdjust from '../components/PhotoAdjust';
 import SignedImage from '../components/SignedImage';
 import ConfirmDelete from '../components/ConfirmDelete';
@@ -53,6 +56,18 @@ export default function ReviewDetail() {
   const [pickedOriginal, setPickedOriginal] = useState<Blob | null>(null);
   const [adjustLoading, setAdjustLoading] = useState(false);
   const [adjustFailed, setAdjustFailed] = useState(false);
+  // Cafe-less drafts (2026-07-17): the cafe picked during this edit session,
+  // applied on save; publishing without one is blocked with needCafe.
+  const [pendingCafe, setPendingCafe] = useState<CafeChoice | null>(null);
+  const [needCafe, setNeedCafe] = useState(false);
+  // Leave-guard (2026-07-17): navigating away from a draft edit opens the
+  // save/draft/delete dialog instead.
+  const [leaveTo, setLeaveTo] = useState<string | null>(null);
+  const formRef = useRef<ReviewFormHandle | null>(null);
+  const navAfterSave = useRef<string | null>(null);
+
+  const guardActive = review != null && editing && review.status === 'draft' && !busy;
+  useLeaveGuard(guardActive ? (to) => { setLeaveTo(to); return true; } : null);
 
   useEffect(() => {
     // Router reuses this component across /review/:id navigations, so clear
@@ -70,6 +85,10 @@ export default function ReviewDetail() {
     setPickedOriginal(null);
     setAdjustLoading(false);
     setAdjustFailed(false);
+    setPendingCafe(null);
+    setNeedCafe(false);
+    setLeaveTo(null);
+    navAfterSave.current = null;
     Promise.all([
       supabase.from('reviews').select('*, cafe:cafes(*)').eq('id', id).maybeSingle(),
       supabase.auth.getUser(),
@@ -119,6 +138,8 @@ export default function ReviewDetail() {
     setPickedOriginal(null);
     setAdjustLoading(false);
     setAdjustFailed(false);
+    setPendingCafe(null);
+    setNeedCafe(false);
   }
 
   // Adjusting the saved photo needs its pixels — download once, then reuse.
@@ -141,11 +162,18 @@ export default function ReviewDetail() {
   async function onSave(draft: ReviewDraft) {
     setPendingDraft(draft);
     if (!review) return;
+    // Publishing needs a real cafe; cafe-less drafts must gain one first.
+    if (draft.status === 'complete' && !review.cafe_id && !pendingCafe) {
+      setNeedCafe(true);
+      navAfterSave.current = null;
+      return;
+    }
+    setNeedCafe(false);
     setBusy(true);
     setFailed(false);
     setDeleting(false);
     try {
-      const newPath = await updateReview(review, draft, photoAction);
+      const newPath = await updateReview(review, draft, photoAction, pendingCafe ?? undefined);
       setReview({
         ...review,
         photo_path: newPath,
@@ -160,11 +188,22 @@ export default function ReviewDetail() {
         occasions: draft.occasions,
         note: draft.note || null, status: draft.status,
       });
+      if (pendingCafe) {
+        // The edit gained a cafe — refetch for the joined cafe row (name,
+        // links, menu). Best-effort: the local update above already holds.
+        const { data } = await supabase
+          .from('reviews').select('*, cafe:cafes(*)').eq('id', review.id).maybeSingle();
+        if (data) setReview(data as Review);
+      }
       setEditing(false);
       resetEdit();
       setPendingDraft(null);
+      const dest = navAfterSave.current;
+      navAfterSave.current = null;
+      if (dest) navigate(dest);
     } catch {
       setFailed(true);
+      navAfterSave.current = null;
     } finally {
       setBusy(false);
     }
@@ -177,14 +216,14 @@ export default function ReviewDetail() {
     else setEditing(false);
   }
 
-  async function onDelete() {
+  async function onDelete(dest = '/') {
     if (!review) return;
     setBusy(true);
     setFailed(false);
     setDeleting(true);
     try {
       await deleteReview(review);
-      navigate('/');
+      navigate(dest);
     } catch {
       setFailed(true);
       setBusy(false);
@@ -231,7 +270,7 @@ export default function ReviewDetail() {
             </div>
           ) : (
             <div className="flex h-56 w-full flex-col items-center justify-center gap-3 rounded-2xl bg-matcha-mist text-matcha-deep">
-              <span className="text-sm">Add a photo of your matcha</span>
+              <span className="text-sm">Add a photo of your matcha (optional)</span>
               <label className="cursor-pointer rounded-xl bg-matcha-deep px-5 py-2.5 text-cream">
                 Take a photo
                 <input type="file" accept="image/*" capture="environment" onChange={onPickPhoto} className="hidden" />
@@ -263,7 +302,9 @@ export default function ReviewDetail() {
       )}
 
       <div className="px-6 pb-2">
-        <h2 className="font-display text-xl">{review.cafe?.name ?? 'Unknown cafe'}</h2>
+        <h2 className="font-display text-xl">
+          {review.cafe?.name ?? (isDraft ? 'No cafe yet' : 'Unknown cafe')}
+        </h2>
         <p className="text-sm text-ink/60">
           {new Date(review.drank_at).toLocaleDateString()}
           {isDraft ? ' · Draft' : ''}
@@ -272,16 +313,34 @@ export default function ReviewDetail() {
 
       {editing ? (
         <>
+          {/* Cafe-less draft: pick the cafe here; it's applied on save. */}
+          {!review.cafe && !busy && (
+            pendingCafe && pendingCafe.kind !== 'none' ? (
+              <p className="px-6 pb-2 text-sm text-ink/60">
+                {pendingCafe.kind === 'candidate' ? pendingCafe.candidate.name : pendingCafe.name}
+                {' · '}
+                <button type="button" onClick={() => setPendingCafe(null)} className="underline">change cafe</button>
+              </p>
+            ) : (
+              <div className="pb-2">
+                <CafePicker onSelect={setPendingCafe} />
+              </div>
+            )
+          )}
           {busy ? (
             <p className="px-6 text-ink/60">{deleting ? 'Deleting…' : 'Saving…'}</p>
           ) : (
             <ReviewForm
               onSubmit={onSave}
+              controlRef={formRef}
               initial={pendingDraft ?? toDraft(review)}
               submitLabel="Save changes"
               draftLabel={isDraft ? 'Keep as draft' : null}
               onCancel={onCancel}
             />
+          )}
+          {needCafe && (
+            <p className="px-6 pt-2 text-sm text-red-700">Add the cafe before publishing — or keep it as a draft.</p>
           )}
           {failed && (
             <p className="px-6 pt-2 text-sm text-red-700">
@@ -298,6 +357,29 @@ export default function ReviewDetail() {
             <div className="px-6 pt-4">
               <ConfirmDelete onDelete={onDelete} />
             </div>
+          )}
+          {leaveTo != null && (
+            <SaveBeforeLeaving
+              canSave={(formRef.current?.canSave ?? false) && (review.cafe_id != null || (pendingCafe != null && pendingCafe.kind !== 'none'))}
+              canDraft={formRef.current?.canDraft ?? false}
+              onSave={() => {
+                navAfterSave.current = leaveTo;
+                setLeaveTo(null);
+                formRef.current?.requestSubmit('complete');
+              }}
+              onDraft={() => {
+                navAfterSave.current = leaveTo;
+                setLeaveTo(null);
+                formRef.current?.requestSubmit('draft');
+              }}
+              onDiscard={() => {
+                const to = leaveTo;
+                setLeaveTo(null);
+                void onDelete(to);
+              }}
+              onStay={() => setLeaveTo(null)}
+              discardLabel="Delete this matcha"
+            />
           )}
         </>
       ) : (

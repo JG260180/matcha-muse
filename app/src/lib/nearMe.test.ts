@@ -61,6 +61,16 @@ const allMilks = new Set<MilkBucket>(MILK_BUCKETS);
 const noFilter: NearMeFilters = { serve: 'all', milks: allMilks };
 const here = { latitude: -34.9285, longitude: 138.6007 }; // at Cafe A
 
+// 2026-07-17 All-chip model: an EMPTY milk set means "all milks".
+test('an empty milk set passes every review, including unspecified milk', () => {
+  const reviews = [
+    makeReview({ cafe: cafeA, milk: 'oat' }),
+    makeReview({ cafe: cafeA, milk: null }),
+  ];
+  const groups = groupReviews(reviews, { serve: 'all', milks: new Set() }, here);
+  expect(groups[0].reviews).toHaveLength(2);
+});
+
 describe('groupReviews', () => {
   it('groups by cafe with count, avg (display) and best (sort key)', () => {
     const reviews = [

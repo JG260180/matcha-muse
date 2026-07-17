@@ -4,9 +4,17 @@ import { nearbyCafes, searchCafes } from '../lib/places';
 
 export type CafeChoice =
   | { kind: 'candidate'; candidate: CafeCandidate }
-  | { kind: 'manual'; name: string; suburb: string };
+  | { kind: 'manual'; name: string; suburb: string }
+  // Drafts may skip the cafe and add it later (owner request 2026-07-17).
+  | { kind: 'none' };
 
-export default function CafePicker({ onSelect }: { onSelect: (c: CafeChoice) => void }) {
+interface Props {
+  onSelect: (c: CafeChoice) => void;
+  /** Shows a "skip for now" option (draft flow only). */
+  onSkip?: () => void;
+}
+
+export default function CafePicker({ onSelect, onSkip }: Props) {
   const [candidates, setCandidates] = useState<CafeCandidate[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [query, setQuery] = useState('');
@@ -45,6 +53,11 @@ export default function CafePicker({ onSelect }: { onSelect: (c: CafeChoice) => 
   return (
     <div className="space-y-4 px-6">
       <h2 className="font-display text-xl">Which cafe?</h2>
+      {onSkip && (
+        <button type="button" onClick={onSkip} className="text-sm text-ink/60 underline">
+          Skip for now — add the cafe when you finish the draft
+        </button>
+      )}
 
       {candidates === null && <p className="text-ink/60">Finding cafes near you…</p>}
 

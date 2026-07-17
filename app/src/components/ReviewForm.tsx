@@ -30,6 +30,14 @@ const EMPTY: ReviewDraft = {
   price: '', occasions: [], note: '', status: 'complete',
 };
 
+// Lets the leave-guard dialog drive the form from outside (2026-07-17):
+// requestSubmit fires onSubmit with the current fields, false = invalid.
+export interface ReviewFormHandle {
+  requestSubmit: (status: 'complete' | 'draft') => boolean;
+  canSave: boolean;
+  canDraft: boolean;
+}
+
 interface Props {
   onSubmit: (d: ReviewDraft) => void;
   /** Read once at mount (like an input's defaultValue) — later prop changes
@@ -38,6 +46,7 @@ interface Props {
   submitLabel?: string;
   draftLabel?: string | null; // null hides the secondary button
   onCancel?: () => void;
+  controlRef?: React.MutableRefObject<ReviewFormHandle | null>;
 }
 
 export default function ReviewForm({
@@ -46,6 +55,7 @@ export default function ReviewForm({
   submitLabel = 'Save matcha',
   draftLabel = 'Save as draft — finish details later',
   onCancel,
+  controlRef,
 }: Props) {
   // Lazy init so "today" is read when the form opens, not at module load
   // (the PWA can stay open across midnight).
@@ -58,6 +68,19 @@ export default function ReviewForm({
   const canSave = d.overall != null && priceOk;
   // Drafts don't need a price — but a typed one must still be valid.
   const canDraft = d.overall != null && (priceTrimmed === '' || priceOk);
+
+  if (controlRef) {
+    // Reassigned every render so the handle never holds stale fields.
+    controlRef.current = {
+      canSave,
+      canDraft,
+      requestSubmit: (status) => {
+        if (status === 'complete' ? !canSave : !canDraft) return false;
+        onSubmit({ ...d, price: priceTrimmed, status });
+        return true;
+      },
+    };
+  }
 
   function toggleOccasion(key: Occasion, on: boolean) {
     patch({ occasions: on ? [...d.occasions, key] : d.occasions.filter((k) => k !== key) });

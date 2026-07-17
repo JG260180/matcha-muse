@@ -77,3 +77,17 @@ autonomous session), TDD on new logic, full suite + tsc + build gate each task.
   `.claude/launch.json` still works when a session starts inside MatchaMuse.
 - Tasks executed inline (not via subagents) in a single autonomous session;
   TDD kept for all new logic.
+- **Round 2 (owner feedback, same day):** milk All-chip model (shared
+  `MilkChips`, both views; empty set = all in `NearMeFilters`), leave-guard
+  dialog (`lib/leaveGuard.tsx` + `SaveBeforeLeaving` + `ReviewFormHandle`),
+  cafe-optional drafts (`CafeChoice kind:'none'`, publish gates, edit-time
+  CafePicker, `updateReview` cafeChoice param), photo "(optional)" copy.
+  177 tests. Live-verified in the signed-in preview: filters narrow/widen with
+  stats, skip-cafe form shows Date field, guard dialog blocks header nav with
+  correct disabled states, "Don't save" leaves cleanly.
+- **Test gotcha:** ReviewDetail.test now clears mocks per test (call counts
+  accumulated across tests once several tests asserted on them). Dialog ✕ is
+  labelled "Close" (not "Keep editing") to keep accessible names unique.
+- **Browser-pane gotcha:** simulated ref-clicks sometimes miss React handlers
+  on small text buttons; element.click() via javascript_tool lands, and state
+  updates flush async — query the DOM in a follow-up call, not synchronously.

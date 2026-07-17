@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Review, Temperature } from '../lib/types';
 import {
-  MILK_BUCKETS, groupReviews, sortGroups, type MilkBucket,
+  groupReviews, sortGroups, type MilkBucket,
 } from '../lib/nearMe';
 import { staticMapUrl } from '../lib/googleLinks';
 import CafeStack from '../components/CafeStack';
+import MilkChips from '../components/MilkChips';
 import NewFab from '../components/NewFab';
 import BackToJournal from '../components/BackToJournal';
 
@@ -17,7 +18,8 @@ export default function NearMe() {
   const [pos, setPos] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locFailed, setLocFailed] = useState(false);
   const [serve, setServe] = useState<Temperature | 'all'>('all');
-  const [milks, setMilks] = useState<ReadonlySet<MilkBucket>>(new Set(MILK_BUCKETS));
+  // Empty set = all milks (2026-07-17 All-chip model, matching the Journal).
+  const [milks, setMilks] = useState<ReadonlySet<MilkBucket>>(new Set());
   const [sort, setSort] = useState<'nearest' | 'top'>('nearest');
   const [openCafe, setOpenCafe] = useState<string | null>(null);
 
@@ -55,12 +57,6 @@ export default function NearMe() {
   const pins = groups
     .filter((g) => g.cafe.latitude != null && g.cafe.longitude != null)
     .map((g) => ({ latitude: g.cafe.latitude!, longitude: g.cafe.longitude! }));
-
-  function toggleMilk(m: MilkBucket) {
-    const next = new Set(milks);
-    if (next.has(m)) next.delete(m); else next.add(m);
-    setMilks(next);
-  }
 
   return (
     <>
@@ -114,19 +110,7 @@ export default function NearMe() {
           ))}
         </div>
 
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Milk">
-          {MILK_BUCKETS.map((m) => (
-            <button
-              key={m}
-              type="button"
-              aria-pressed={milks.has(m)}
-              onClick={() => toggleMilk(m)}
-              className={`rounded-full px-3 py-1.5 text-sm capitalize ${milks.has(m) ? 'bg-matcha-deep text-cream' : 'bg-sand/60 text-sand-ink line-through'}`}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
+        <MilkChips selected={milks} onChange={setMilks} />
 
         {groups.length === 0 && (
           <p className="py-10 text-center text-ink/60">
