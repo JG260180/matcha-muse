@@ -117,10 +117,10 @@ AMENDMENTS). State: **170 tests passing, tsc + `npm run build` clean.** Commits
 1. **Date field** on create/edit (defaults today, capped at today; same-day
    keeps the original timestamp, changed day saves local noon — `lib/drankAt.ts`).
 2. **Drafts save without a price** (Save-matcha still requires one).
-   ⚠️ **DB MIGRATION NOT APPLIED YET** — she must run
-   `app/supabase/migrations/2026-07-17-draft-price-null.sql` (two statements)
-   in the Supabase SQL editor before this works; until then a no-price draft
-   just shows the normal "Couldn't save" error. Everything else works without it.
+   ✅ **DB migration APPLIED 2026-07-17** — Justina ran
+   `app/supabase/migrations/2026-07-17-draft-price-null.sql` in the SQL editor
+   and verified `information_schema.columns.is_nullable = YES` for
+   `reviews.price`. Nothing further needed on the database.
 3. **Menu photos from drafts** — CafeMenu now renders in edit mode too
    (amends the 2026-07-15 menu spec's "view mode only" rule, owner-requested).
 4. **Draft delete without publishing** — two-tap ConfirmDelete in draft edit
@@ -139,8 +139,7 @@ AMENDMENTS). State: **170 tests passing, tsc + `npm run build` clean.** Commits
 24 test files (random timeouts in untouched suites — jsdom worker overload +
 OneDrive). Use `npx vitest run --no-file-parallelism`. Not a code issue.
 
-**STILL TO DO:** (1) Justina runs the price migration (guide her through the
-SQL editor; two statements, safe to run once); (2) her on-device acceptance:
+**STILL TO DO:** (1) ~~price migration~~ DONE 2026-07-17; (2) her on-device acceptance:
 date edit, no-price draft, menu photo from a draft, draft delete, Adjust on a
 real iPhone photo (portrait must stay upright — createImageBitmap EXIF path),
 journal filters; (3) merge `feature/owner-improvements` → `main`, push, deploy
