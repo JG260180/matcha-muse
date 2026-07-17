@@ -2,6 +2,12 @@
 
 **For the next agent (any model): read this file, the spec, and the plan before doing anything.**
 
+> **REPO MOVED (2026-07-17):** the repo now lives at
+> `C:\Users\justi\OneDrive - LightSpeed Consulting\APPS\MatchaMuse`
+> (was `C:\Users\justi\OneDrive\Documents\MatchaMuse`) — part of the
+> Microsoft-tenancy move. All old paths in this file should be read
+> against the new root. Newest section: "Owner improvements (2026-07-17)".
+
 - Spec (approved): `docs/superpowers/specs/2026-07-07-matcha-muse-design.md`
 - Plan (v1, with amendments): `docs/superpowers/plans/2026-07-07-matcha-muse-v1.md`
 - Owner: Justina Gardiner (justina@lightspeedconsulting.com.au) — **non-technical**. Explain things plainly, guide her step-by-step through any browser/account work, never ask her to run commands.
@@ -96,6 +102,51 @@ Work is on branch **`build/v1`** (repo root `C:\Users\justi\OneDrive\Documents\M
 - Code: `lib/passwordReset.ts` (requestReset / confirmReset=verifyOtp-recovery-then-updateUser / isRateLimit), `components/ForgotPassword.tsx` (two-step UI, neutral no-oracle messaging, 60 s resend cooldown via single interval — per-tick setTimeout stalls under fake timers, gotcha!), Login entry. 137 tests total, tsc + build clean. Commits `d274db7` → `a4fba80` → `e0a068d` (fix round: "kitchen" copy bug, confirm-step coverage, Back disabled while busy) → `a100244`.
 - Quality-review notes on record: hung request briefly leaves no enabled controls on the code step (accepted); cross-photo… (n/a here); skipped minors: "Too many attempts" string dedupe, Send-again re-invoke assertion.
 - UI round-trip verified in the preview app (login → forgot → back). **STILL TO DO:** her template test email; live end-to-end reset with HER typing the password (assistant never touches passwords — also true of the SMTP key); her first real use of the flow doubles as setting her password (dashboard can't); then menu-feature acceptance in the same sitting; final whole-feature review verdict; merge + deploy.
+
+### Owner improvements (2026-07-17) — CODE COMPLETE on `feature/owner-improvements`, NOT merged/deployed
+
+Six improvements Justina requested on 2026-07-17, built in one autonomous session
+(no live Q&A — design decisions follow existing patterns and are recorded in the
+spec). Spec `docs/superpowers/specs/2026-07-17-owner-improvements-design.md`;
+plan `docs/superpowers/plans/2026-07-17-owner-improvements.md` (READ ITS
+AMENDMENTS). State: **170 tests passing, tsc + `npm run build` clean.** Commits
+`6d3917c` (docs) → `12121e3`/`d31cb77` (price) → `a59a22b` (date) → `cf9e94b`
+(draft menu/delete) → `b5db479` (journal filters) → `55c59c7` (crop) → `3dfa1a4`
+(review fixes).
+
+1. **Date field** on create/edit (defaults today, capped at today; same-day
+   keeps the original timestamp, changed day saves local noon — `lib/drankAt.ts`).
+2. **Drafts save without a price** (Save-matcha still requires one).
+   ⚠️ **DB MIGRATION NOT APPLIED YET** — she must run
+   `app/supabase/migrations/2026-07-17-draft-price-null.sql` (two statements)
+   in the Supabase SQL editor before this works; until then a no-price draft
+   just shows the normal "Couldn't save" error. Everything else works without it.
+3. **Menu photos from drafts** — CafeMenu now renders in edit mode too
+   (amends the 2026-07-15 menu spec's "view mode only" rule, owner-requested).
+4. **Draft delete without publishing** — two-tap ConfirmDelete in draft edit
+   mode, with delete-specific busy/error copy.
+5. **Photo crop/position** — `PhotoAdjust` full-screen dialog (drag + zoom
+   slider, 4:3 frame; `lib/crop.ts` holds the math) on NewReview and
+   ReviewDetail edit, including the already-saved photo via storage download.
+   Re-adjust always starts from the as-picked original (no compounding crops).
+   Falls back to the untouched original on any render failure (downscalePhoto
+   stance). Pinch-zoom parked; slider only.
+6. **Journal filters** — Serve + Milk chip rows on the Dashboard, identical to
+   Near Me, composing with reviewer chips + drafts toggle; stat tiles follow;
+   changing them resets drafts-only (same reassert-guard as reviewer chips).
+
+**Gotcha for this machine:** vitest's default parallel run now flakes with
+24 test files (random timeouts in untouched suites — jsdom worker overload +
+OneDrive). Use `npx vitest run --no-file-parallelism`. Not a code issue.
+
+**STILL TO DO:** (1) Justina runs the price migration (guide her through the
+SQL editor; two statements, safe to run once); (2) her on-device acceptance:
+date edit, no-price draft, menu photo from a draft, draft delete, Adjust on a
+real iPhone photo (portrait must stay upright — createImageBitmap EXIF path),
+journal filters; (3) merge `feature/owner-improvements` → `main`, push, deploy
+(`npm run build` then `npx wrangler pages deploy dist --project-name
+matcha-muse --branch main --commit-dirty=true` from `app/`). Deploy was NOT
+run this session (owner not present).
 
 ### Task 14 playbook (the only remaining work)
 

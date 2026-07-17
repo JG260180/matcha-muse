@@ -62,4 +62,18 @@ autonomous session), TDD on new logic, full suite + tsc + build gate each task.
 
 ## Amendments
 
-- (running log — add here as work proceeds)
+- **Vitest parallel flakiness on this machine:** with 24 test files, the
+  default parallel run intermittently times out across unrelated suites
+  (jsdom worker overload + OneDrive). `npx vitest run --no-file-parallelism`
+  is reliable (170 passing). Not a code problem — do not "fix" tests for it.
+- **Review round (inline, medium):** two findings fixed — (1) drafts-only
+  toggle now resets when serve/milk filters change (same reassert bug the
+  reviewer chips already guarded); (2) PhotoAdjust ignores a crop render that
+  finishes after Cancel/Escape unmounted it. Deferred minor on record:
+  Dashboard/NearMe filter-chip markup duplication (extract a FilterChips
+  component if touched again).
+- **Preview browser launch config** for this session's harness lives at
+  `APPS/.claude/launch.json` (session cwd is the APPS folder); the repo's own
+  `.claude/launch.json` still works when a session starts inside MatchaMuse.
+- Tasks executed inline (not via subagents) in a single autonomous session;
+  TDD kept for all new logic.
