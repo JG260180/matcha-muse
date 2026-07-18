@@ -164,7 +164,17 @@ journal filters; (3) merge `feature/owner-improvements` → `main`, push, deploy
 matcha-muse --branch main --commit-dirty=true` from `app/`). Deploy was NOT
 run this session (owner not present).
 
-### Image performance + UX follow-up batch (2026-07-17, remote/cloud session) — CODE COMPLETE on `claude/matcha-muse-image-lag-57rgbl`, ⚠️ NOT DEPLOYED
+### Image performance + UX follow-up batch (2026-07-17, remote/cloud session) — ✅ DEPLOYED 2026-07-18
+
+> **2026-07-18 deploy (from Justina's machine):** `claude/matcha-muse-image-lag-57rgbl`
+> fast-forward-merged to `main` (`4003cce`), pushed to origin. 202 tests passing
+> (`--no-file-parallelism`), tsc + `npm run build` clean. Deployed via
+> `npx wrangler pages deploy dist --project-name matcha-muse --branch main
+> --commit-dirty=true` (deploy `7ce4b430`); live-verified: production serves
+> bundle `index-Br-d6SGn.js`, deep link `/new` returns 200. No DB work needed.
+> **Remaining = her on-device checks** (step 4 of the TO DEPLOY list below) and
+> the optional step-5 offers (cloud-deploy secrets; thumbnail backfill for the
+> ~10 pre-existing photos — fallback already covers them).
 
 Owner-reported: image lag at 10 matchas + blank black screen when repositioning
 an uploaded photo, then three UX follow-ups. All built and owner-approved via a
