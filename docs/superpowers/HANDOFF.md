@@ -227,14 +227,17 @@ Preview mock-up shown to owner (approved): claude.ai artifact
    deploy; and a one-off thumbnail backfill for the 10 existing photos
    (not required — fallback covers them).
 
-### Owner bug batch (2026-07-22) — code COMPLETE on `main` (`b1204ad`, pushed), deploy PENDING
+### Owner bug batch (2026-07-22) — ✅ DEPLOYED TO PRODUCTION same day
 
 Justina reported three issues; all fixed in one session, 209 tests passing
-(was 202), tsc + `npm run build` clean. **The wrangler deploy was blocked by
-the session's permission classifier — NOT yet live.** Next session: run
-`npx wrangler pages deploy dist --project-name matcha-muse --branch main
---commit-dirty=true` from `app/` (rebuild first), verify the live bundle hash,
-then her on-device checks below.
+(was 202), tsc + `npm run build` clean. **Live at
+https://matcha-muse.pages.dev** (bundle `index-D2rm4tBp.js`, deploy
+`bd447646`; live-verified: bundle hash matches local build, `/new` deep link
+200, all three new feature strings present in the served JS). The first
+wrangler deploy attempt was blocked by the session's permission classifier;
+Justina approved in chat ("yes, deploy") and it ran cleanly — expect to ask
+for deploy approval in future sessions too. Remaining = her on-device checks
+(listed below).
 
 1. **White screen adjusting NEW photos (root cause found):** freshly picked
    files entered the preview + PhotoAdjust at full camera resolution
