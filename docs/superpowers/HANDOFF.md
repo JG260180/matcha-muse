@@ -227,6 +227,48 @@ Preview mock-up shown to owner (approved): claude.ai artifact
    deploy; and a one-off thumbnail backfill for the 10 existing photos
    (not required — fallback covers them).
 
+### Owner bug batch (2026-07-22) — code COMPLETE on `main` (`b1204ad`, pushed), deploy PENDING
+
+Justina reported three issues; all fixed in one session, 209 tests passing
+(was 202), tsc + `npm run build` clean. **The wrangler deploy was blocked by
+the session's permission classifier — NOT yet live.** Next session: run
+`npx wrangler pages deploy dist --project-name matcha-muse --branch main
+--commit-dirty=true` from `app/` (rebuild first), verify the live bundle hash,
+then her on-device checks below.
+
+1. **White screen adjusting NEW photos (root cause found):** freshly picked
+   files entered the preview + PhotoAdjust at full camera resolution
+   (12–48MP); the decoded bitmaps blow WebKit's memory on iPhone → tab crash
+   (white screen until reload). Saved photos never crashed because they're
+   stored ≤1600px — that's why the 2026-07-18 fix helped only saved photos.
+   Fix: `onPhoto`/`onPickPhoto` now run `downscalePhoto(file)` at pick time
+   (with a "Preparing photo…" status) so preview/Adjust/crop all work on the
+   small blob. `original`/`pickedOriginal` now hold the downscaled blob —
+   re-Adjust still never compounds crops.
+2. **Menu photos while logging:** NewReview now renders CafeMenu once a
+   GOOGLE cafe is picked — it eagerly creates the cafe row (`ensureCafe`;
+   dedupe on google_place_id makes the later save reuse it). Manual cafes
+   stay save-time-only (eager insert would duplicate rows — recorded
+   limitation, menu appears after saving as before). Abandoned logs can
+   leave a cafe row with no reviews — accepted orphan.
+3. **Google review after save:** publishing at a Google cafe now ends on a
+   "Matcha saved" screen with **"Copy review to Google ↗"** (copies note,
+   opens write-review; same gesture-scoped clipboard pattern) + Done →
+   journal. Drafts/manual cafes/queued saves keep the old destinations. All
+   existing "Review on Google" links renamed to "Copy review to Google"
+   (ReviewDetail card, CafeStack/Near me + their tests).
+
+New tests: `NewReview.test.tsx` (7 — downscale-on-pick, menu section
+show/hide, post-save prompt paths). **Her on-device checks once deployed:**
+new photo → Adjust (no white screen, portrait upright), menu photo while
+logging at a Google cafe, publish → Copy-review prompt appears, link copies
+note into Google.
+
+**Session gotcha (recorded in APPS playbook too):** PowerShell 5.1
+`Get-Content`/`Set-Content` round-trips corrupt UTF-8 source files (em-dashes
+→ mojibake, adds BOM) — one broke ReviewDetail.test.tsx until restored via
+`git checkout`. Use the Edit tool for source edits, never PS text pipelines.
+
 ### Task 14 playbook (the only remaining work)
 
 Follow the plan's Task 14 steps AND its amendment notes (Step 4b photo-downscale; iPhone checklist item 8 about upright photos). Sequence:
