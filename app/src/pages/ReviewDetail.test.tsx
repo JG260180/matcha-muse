@@ -277,7 +277,7 @@ describe('ReviewDetail', () => {
 
   // Owner request 2026-07-17 follow-up: the Google-review path must also
   // exist inside the matcha card — but only for the review's own author.
-  describe('Review on Google inside the card', () => {
+  describe('Copy review to Google inside the card', () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     beforeEach(() => {
       writeText.mockClear();
@@ -286,7 +286,7 @@ describe('ReviewDetail', () => {
 
     it('shows the link on your own review, copies the note, and says so', async () => {
       renderDetail(makeReview({}));
-      const link = await screen.findByRole('link', { name: /review on google/i });
+      const link = await screen.findByRole('link', { name: /copy review to google/i });
       expect(link.getAttribute('href')).toContain('place-a');
       expect(link.getAttribute('target')).toBe('_blank');
       // jsdom cannot navigate; suppress the default so the click stays local.
@@ -299,18 +299,18 @@ describe('ReviewDetail', () => {
     it("hides the link on someone else's review", async () => {
       renderDetail(makeReview({ user_id: 'u2' }), 'u1');
       await screen.findByText('Cafe A');
-      expect(screen.queryByRole('link', { name: /review on google/i })).toBeNull();
+      expect(screen.queryByRole('link', { name: /copy review to google/i })).toBeNull();
     });
 
     it('hides the link when the cafe has no Google listing', async () => {
       renderDetail(makeReview({ cafe: { ...cafe, google_place_id: null } }));
       await screen.findByRole('button', { name: 'Edit' });
-      expect(screen.queryByRole('link', { name: /review on google/i })).toBeNull();
+      expect(screen.queryByRole('link', { name: /copy review to google/i })).toBeNull();
     });
 
     it('does not touch the clipboard when the review has no note', async () => {
       renderDetail(makeReview({ note: null }));
-      const link = await screen.findByRole('link', { name: /review on google/i });
+      const link = await screen.findByRole('link', { name: /copy review to google/i });
       link.addEventListener('click', (e) => e.preventDefault());
       fireEvent.click(link);
       expect(writeText).not.toHaveBeenCalled();

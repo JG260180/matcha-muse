@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { updateReview, deleteReview, replaceReviewPhoto, type PhotoAction } from '../lib/api';
+import { updateReview, deleteReview, replaceReviewPhoto, downscalePhoto, type PhotoAction } from '../lib/api';
 import { OCCASIONS, type Review } from '../lib/types';
 import ReviewForm, { type ReviewDraft, type ReviewFormHandle } from '../components/ReviewForm';
 import CafePicker, { type CafeChoice } from '../components/CafePicker';
@@ -55,6 +55,7 @@ export default function ReviewDetail() {
   // and the existing-photo download state.
   const [adjustSrc, setAdjustSrc] = useState<Blob | null>(null);
   const [pickedOriginal, setPickedOriginal] = useState<Blob | null>(null);
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
   const [adjustLoading, setAdjustLoading] = useState(false);
   const [adjustFailed, setAdjustFailed] = useState(false);
   // Adjusting an already-saved photo commits on "Use photo"; when that save
@@ -90,6 +91,7 @@ export default function ReviewDetail() {
     setPendingDraft(null);
     setAdjustSrc(null);
     setPickedOriginal(null);
+    setPreparingPhoto(false);
     setAdjustLoading(false);
     setAdjustFailed(false);
     setPhotoSaveFailed(false);
@@ -127,13 +129,19 @@ export default function ReviewDetail() {
   const editHasPhoto =
     photoAction.kind === 'replace' || (photoAction.kind === 'keep' && review.photo_path != null);
 
-  function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
-    if (!file) return;
-    setPhotoAction({ kind: 'replace', blob: file });
-    setPickedOriginal(file);
-    setNewPhotoUrl(URL.createObjectURL(file));
     e.target.value = '';
+    if (!file) return;
+    // Shrink BEFORE anything renders or adjusts it — a full-resolution phone
+    // photo held decoded by the preview/PhotoAdjust crashes the mobile tab
+    // (white screen). Same fix as NewReview; downscalePhoto never throws.
+    setPreparingPhoto(true);
+    const small = await downscalePhoto(file);
+    setPhotoAction({ kind: 'replace', blob: small });
+    setPickedOriginal(small);
+    setNewPhotoUrl(URL.createObjectURL(small));
+    setPreparingPhoto(false);
   }
 
   function removePhoto() {
@@ -148,6 +156,7 @@ export default function ReviewDetail() {
     setFailed(false);
     setAdjustSrc(null);
     setPickedOriginal(null);
+    setPreparingPhoto(false);
     setAdjustLoading(false);
     setAdjustFailed(false);
     setPhotoSaveFailed(false);
@@ -289,15 +298,21 @@ export default function ReviewDetail() {
             </div>
           ) : (
             <div className="flex h-56 w-full flex-col items-center justify-center gap-3 rounded-2xl bg-matcha-mist text-matcha-deep">
-              <span className="px-6 text-center text-sm">Add a photo of your matcha — needed to publish, drafts can skip it</span>
-              <label className="cursor-pointer rounded-xl bg-matcha-deep px-5 py-2.5 text-cream">
-                Take a photo
-                <input type="file" accept="image/*" capture="environment" onChange={onPickPhoto} className="hidden" />
-              </label>
-              <label className="cursor-pointer text-sm underline">
-                Choose from library
-                <input type="file" accept="image/*" onChange={onPickPhoto} className="hidden" />
-              </label>
+              {preparingPhoto ? (
+                <p role="status" className="text-sm">Preparing photo…</p>
+              ) : (
+                <>
+                  <span className="px-6 text-center text-sm">Add a photo of your matcha — needed to publish, drafts can skip it</span>
+                  <label className="cursor-pointer rounded-xl bg-matcha-deep px-5 py-2.5 text-cream">
+                    Take a photo
+                    <input type="file" accept="image/*" capture="environment" onChange={onPickPhoto} className="hidden" />
+                  </label>
+                  <label className="cursor-pointer text-sm underline">
+                    Choose from library
+                    <input type="file" accept="image/*" onChange={onPickPhoto} className="hidden" />
+                  </label>
+                </>
+              )}
             </div>
           )
         ) : (
@@ -467,7 +482,7 @@ export default function ReviewDetail() {
                 }}
                 className="text-sm text-matcha-deep underline"
               >
-                Review on Google ↗
+                Copy review to Google ↗
               </a>
               {noteCopied && (
                 <p role="status" className="mt-2 rounded-xl bg-matcha-mist p-3 text-xs text-matcha-deep">

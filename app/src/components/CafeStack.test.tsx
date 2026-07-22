@@ -78,7 +78,7 @@ describe('CafeStack', () => {
   it('shows Google links when the cafe has a place id, hides them otherwise', () => {
     renderStack(<CafeStack group={makeGroup([makeReview({})])} expanded={false} onToggle={() => {}} />);
     expect(screen.getByRole('link', { name: /Open in Google Maps/ })).toBeDefined();
-    expect(screen.getByRole('link', { name: /Review on Google/ })).toBeDefined();
+    expect(screen.getByRole('link', { name: /Copy review to Google/ })).toBeDefined();
 
     const manual: CafeGroup = {
       ...makeGroup([makeReview({})]),
@@ -109,7 +109,7 @@ describe('CafeStack', () => {
     }
   });
 
-  describe('Review on Google clipboard copy', () => {
+  describe('Copy review to Google clipboard copy', () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
 
     beforeEach(() => {
@@ -118,7 +118,7 @@ describe('CafeStack', () => {
     });
 
     function clickReviewLink() {
-      const link = screen.getByRole('link', { name: /Review on Google/ });
+      const link = screen.getByRole('link', { name: /Copy review to Google/ });
       // jsdom cannot navigate; suppress the default so the click stays local.
       link.addEventListener('click', (e) => e.preventDefault());
       fireEvent.click(link);

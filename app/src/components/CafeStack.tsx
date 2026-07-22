@@ -93,7 +93,7 @@ export default function CafeStack({ group, expanded, onToggle }: Props) {
               target="_blank" rel="noreferrer" onClick={copyNote}
               className="text-matcha-deep underline"
             >
-              Review on Google
+              Copy review to Google
             </a>
           </div>
         )}
